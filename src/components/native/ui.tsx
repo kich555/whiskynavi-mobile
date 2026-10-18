@@ -1,8 +1,9 @@
 import { ImageIcon } from "lucide-react-native";
 import { Image } from "expo-image";
 import { Link, router, type Href, usePathname } from "expo-router";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
   FlatList,
@@ -30,6 +31,8 @@ export const colors = {
   accent: "#ffffff",
   line: "#ffffff1a",
   danger: "#ffb4ac",
+  commerce: "#92400e",
+  available: "#166534",
 };
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
@@ -119,7 +122,7 @@ export const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     lineHeight: 24,
-    paddingVertical: 8,
+    paddingVertical: 12,
     fontWeight: "500",
   },
   image: {
@@ -194,42 +197,75 @@ export function Action({
 export function NavLink({
   href,
   children,
+  onPress,
 }: {
   href: string;
   children: ReactNode;
+  onPress?: () => void;
 }) {
   return (
-    <Link href={href as Href} style={styles.link}>
+    <Link href={href as Href} style={styles.link} onPress={onPress}>
       {children}
     </Link>
   );
 }
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function Field({
+  label,
+  error,
+  inputRef,
+  trailing,
+  ...props
+}: TextInputProps & {
+  label: string;
+  error?: string;
+  inputRef?: import("react").Ref<TextInput>;
+  trailing?: ReactNode;
+}) {
   return (
     <View style={{ gap: 8 }}>
       <Label>{label}</Label>
-      <TextInput
-        testID={
-          label === "이메일 주소"
-            ? "field-email"
-            : label === "비밀번호"
-              ? "field-password"
-              : label === "제목"
-                ? "field-title"
-                : label === "내용"
-                  ? "field-content"
-                  : undefined
-        }
-        accessibilityLabel={label}
-        placeholderTextColor={colors.muted}
-        autoCapitalize="none"
-        {...props}
-        style={[
-          styles.input,
-          props.multiline ? { minHeight: 140, textAlignVertical: "top" } : null,
-          props.style,
-        ]}
-      />
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TextInput
+          ref={inputRef}
+          aria-invalid={Boolean(error)}
+          accessibilityHint={error}
+          aria-describedby={error ? `${props.nativeID}-error` : undefined}
+          testID={
+            label === "이메일 주소"
+              ? "field-email"
+              : label === "비밀번호"
+                ? "field-password"
+                : label === "제목"
+                  ? "field-title"
+                  : label === "내용"
+                    ? "field-content"
+                    : undefined
+          }
+          accessibilityLabel={label}
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          {...props}
+          style={[
+            styles.input,
+            { flex: 1 },
+            props.multiline
+              ? { minHeight: 140, textAlignVertical: "top" }
+              : null,
+            props.style,
+            error ? { borderColor: colors.danger } : null,
+          ]}
+        />
+        {trailing}
+      </View>
+      {error ? (
+        <Text
+          nativeID={`${props.nativeID}-error`}
+          accessibilityLiveRegion="polite"
+          style={styles.error}
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -243,7 +279,9 @@ export function Toggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <View style={[styles.row, { justifyContent: "space-between" }]}>
+    <View
+      style={[styles.row, { justifyContent: "space-between", minHeight: 48 }]}
+    >
       <Text style={[styles.text, { flex: 1 }]}>{label}</Text>
       <Switch
         accessibilityLabel={label}
@@ -300,6 +338,7 @@ export function Gallery({
 }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
+  const scroll = useRef<ScrollView>(null);
   const unique = [
     ...new Set(images.filter((uri): uri is string => Boolean(uri))),
   ];
@@ -309,6 +348,7 @@ export function Gallery({
       style={{ gap: 12 }}
     >
       <ScrollView
+        ref={scroll}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -333,10 +373,33 @@ export function Gallery({
           </View>
         ))}
       </ScrollView>
+      {unique.length === 0 ? <Photo label={label} /> : null}
       {unique.length > 1 ? (
-        <Text style={[styles.muted, { textAlign: "center" }]}>
-          {index + 1} / {unique.length}
-        </Text>
+        <View style={[styles.row, { justifyContent: "space-between" }]}>
+          <Action
+            secondary
+            title="이전 이미지"
+            disabled={index === 0}
+            onPress={() => {
+              const next = Math.max(0, index - 1);
+              setIndex(next);
+              scroll.current?.scrollTo({ x: next * width, animated: false });
+            }}
+          />
+          <Text accessibilityLiveRegion="polite" style={styles.muted}>
+            {index + 1} / {unique.length}
+          </Text>
+          <Action
+            secondary
+            title="다음 이미지"
+            disabled={index >= unique.length - 1}
+            onPress={() => {
+              const next = Math.min(unique.length - 1, index + 1);
+              setIndex(next);
+              scroll.current?.scrollTo({ x: next * width, animated: false });
+            }}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -581,7 +644,7 @@ export function useTask() {
       setPending(false);
     }
   };
-  return { pending, error, run };
+  return { pending, error, run, clearError: () => setError(null) };
 }
 export const money = (value?: number) =>
   value == null ? "-" : `${value.toLocaleString("ko-KR")}원`;
@@ -592,24 +655,49 @@ export function go(path: string) {
 }
 
 export function Sheet({
+  returnFocusRef,
+  footer,
   visible,
   title,
   onDismiss,
   children,
 }: {
+  returnFocusRef?: import("react").RefObject<View | null>;
+  footer?: ReactNode;
   visible: boolean;
   title: string;
   onDismiss: () => void;
   children: ReactNode;
 }) {
+  const heading = useRef<Text>(null);
+  const wasVisible = useRef(false);
+  useEffect(() => {
+    if (!visible && wasVisible.current && Platform.OS !== "web") {
+      const timer = setTimeout(() => {
+        if (returnFocusRef?.current)
+          AccessibilityInfo.sendAccessibilityEvent(
+            returnFocusRef.current,
+            "focus",
+          );
+      }, 350);
+      wasVisible.current = visible;
+      return () => clearTimeout(timer);
+    }
+    wasVisible.current = visible;
+  }, [visible, returnFocusRef]);
   return (
     <Modal
       visible={visible}
+      onShow={() => {
+        if (Platform.OS !== "web" && heading.current)
+          AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
+      }}
       transparent
       animationType="slide"
       onRequestClose={onDismiss}
     >
-      <View
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{
           flex: 1,
           justifyContent: "flex-end",
@@ -617,11 +705,14 @@ export function Sheet({
         }}
       >
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel="닫기"
           onPress={onDismiss}
           style={{ flex: 1 }}
         />
         <SafeAreaView
+          accessibilityViewIsModal
+          onAccessibilityEscape={onDismiss}
           edges={["bottom"]}
           style={{
             backgroundColor: colors.surface,
@@ -641,18 +732,37 @@ export function Sheet({
               }}
             />
             <View style={[styles.row, { justifyContent: "space-between" }]}>
-              <Heading>{title}</Heading>
+              <Text
+                ref={heading}
+                accessible
+                accessibilityRole="header"
+                style={[styles.heading, { flex: 1 }]}
+              >
+                {title}
+              </Text>
               <Action secondary title="완료" onPress={onDismiss} />
             </View>
           </View>
           <ScrollView
+            style={{ flexShrink: 1 }}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ padding: 20, paddingTop: 0, gap: 16 }}
           >
             {children}
           </ScrollView>
+          {footer ? (
+            <View
+              style={{
+                padding: 20,
+                borderTopWidth: 1,
+                borderColor: colors.line,
+              }}
+            >
+              {footer}
+            </View>
+          ) : null}
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** medium
 
@@ -19,3 +19,9 @@
 - [ ] 자동 전환 유지/정지/명시적 재개의 시간 기반 여정을 기존 fixture로 검증한다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+홈 이전/다음·일시정지/재생·현재 위치를 추가했다. 모션 감소·앱 비활성·화면 비활성·키보드 포커스·화면낭독기에서 자동 전환을 멈춘다. 시간 기반 웹 자동/정지/명시적 재개와 모션 감소 회귀 통과. native AppState/낭독기 확인은 대기.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

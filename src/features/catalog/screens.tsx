@@ -32,6 +32,7 @@ import {
 import { ApiError } from "@/apis/mutator";
 import { RichContent } from "@/components/native/rich-content";
 import {
+  colors,
   Action,
   Field,
   Heading,
@@ -72,7 +73,7 @@ export function canOrder(
   );
 }
 export function CatalogScreen({ channel }: { channel: Channel }) {
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const [page, setPage] = useState(0);
   const query = useQuery({
     queryKey: ["catalog", channel, page],
@@ -87,7 +88,7 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
   });
   return (
     <PagedList
-      columns={width >= 375 ? 2 : 1}
+      columns={width >= 375 && fontScale <= 1.3 ? 2 : 1}
       columnGap={20}
       title={titles[channel]}
       intro={
@@ -128,7 +129,7 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
           style={{
             borderWidth: 1,
             borderColor: "#ffffff1a",
-            padding: 20,
+            padding: 16,
             gap: 16,
             backgroundColor: "#ffffff0d",
           }}
@@ -136,7 +137,6 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
           <Photo uri={product.imageUrl} label={product.name ?? "상품"} />
           <View
             style={{
-              flexDirection: "row",
               gap: 8,
               alignItems: "flex-start",
               justifyContent: "space-between",
@@ -144,11 +144,10 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
           >
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text
-                numberOfLines={2}
                 style={{
                   ...styles.heading,
-                  fontSize: 20,
-                  lineHeight: 23,
+                  fontSize: 16,
+                  lineHeight: 24,
                 }}
               >
                 {product.name}
@@ -167,7 +166,9 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
                 paddingHorizontal: 6,
                 borderRadius: 12,
                 backgroundColor:
-                  (product.availableQuantity ?? 0) > 0 ? "#008e3e" : "#4b5563",
+                  (product.availableQuantity ?? 0) > 0
+                    ? colors.available
+                    : "#4b5563",
               }}
             >
               {(product.availableQuantity ?? 0) > 0 ? "판매중" : "품절"}
@@ -195,13 +196,14 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
             onPress={() =>
               router.push(`${paths[channel]}/${product.id}` as never)
             }
-            style={{
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.7 : 1,
               minHeight: 48,
-              backgroundColor: "#d97706",
+              backgroundColor: colors.commerce,
               alignItems: "center",
               justifyContent: "center",
               marginTop: 8,
-            }}
+            })}
           >
             <Text style={{ ...styles.text, color: "white" }}>상세보기</Text>
           </Pressable>

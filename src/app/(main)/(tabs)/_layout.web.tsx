@@ -1,5 +1,6 @@
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { usePathname } from "expo-router";
 import { Text } from "react-native";
 import {
   House,
@@ -11,6 +12,7 @@ import {
 import { colors } from "@/components/native/ui";
 import { BrandHeader } from "@/components/native/brand";
 export default function Layout() {
+  const path = usePathname();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <BrandHeader />
@@ -54,12 +56,16 @@ export default function Layout() {
                 gap: 5,
               }}
             >
-              <Icon size={21} color={colors.text} strokeWidth={1.5} />
+              <Icon
+                size={22}
+                color={path === href ? colors.text : colors.muted}
+                strokeWidth={path === href ? 2.4 : 1.5}
+              />
               <Text
                 style={{
-                  color: colors.text,
-                  fontSize: 11,
-                  fontFamily: "NaviSans",
+                  color: path === href ? colors.text : colors.muted,
+                  fontSize: 12,
+                  fontFamily: path === href ? "NaviSansBold" : "NaviSans",
                 }}
               >
                 {label}

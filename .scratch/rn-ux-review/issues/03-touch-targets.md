@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** high
 
@@ -18,3 +18,9 @@
 - [ ] 원본 이미지·카드 열 수·375px 기준은 보존하고 필요한 컨트롤 간격만 조정한다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+헤더·상세 뒤로가기·검색·시리즈·정렬·배너 제어를 48 단위로 확보하고 작은 배너 점을 버튼 제어로 교체했다. 헤더의 웹 측정 통과. 실제 기기 hit testing은 대기.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

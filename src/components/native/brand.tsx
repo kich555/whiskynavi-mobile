@@ -9,7 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Menu, ShoppingCart, Search, ChevronDown } from "lucide-react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Pressable,
   Text,
@@ -19,8 +19,12 @@ import {
 } from "react-native";
 import { colors, NavLink, Sheet } from "./ui";
 import type { BottleResponse } from "@/apis/generated/api";
+export const bottleFrame = { borderWidth: 1, borderColor: colors.line };
+
 export function BrandHeader() {
+  const [pressedControl, setPressedControl] = useState<string>();
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<View>(null);
   return (
     <>
       <View
@@ -39,7 +43,13 @@ export function BrandHeader() {
           <Pressable
             accessibilityRole="link"
             accessibilityLabel="WHISKYNAVI"
-            style={{ height: 44, justifyContent: "center" }}
+            onPressIn={() => setPressedControl("logo")}
+            onPressOut={() => setPressedControl(undefined)}
+            style={{
+              height: 48,
+              justifyContent: "center",
+              opacity: pressedControl === "logo" ? 0.7 : 1,
+            }}
           >
             <Image
               source={require("../../../assets/brand/logo.png")}
@@ -52,23 +62,38 @@ export function BrandHeader() {
           <Link href="/general-items/cart" asChild>
             <Pressable
               accessibilityLabel="일반상품 장바구니"
-              style={brand.icon}
+              onPressIn={() => setPressedControl("cart")}
+              onPressOut={() => setPressedControl(undefined)}
+              style={{
+                ...brand.icon,
+                opacity: pressedControl === "cart" ? 0.7 : 1,
+              }}
             >
               <ShoppingCart color="white" size={23} strokeWidth={1.5} />
             </Pressable>
           </Link>
           <Pressable
             accessibilityRole="button"
+            ref={menuRef}
+            accessibilityState={{ expanded: open }}
             accessibilityLabel="메뉴 열기"
             onPress={() => setOpen(true)}
-            style={brand.icon}
+            style={({ pressed }) => [
+              brand.icon,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
           >
             <Menu color="white" size={24} strokeWidth={1.5} />
           </Pressable>
         </View>
       </View>
-      <Sheet visible={open} title="WHISKYNAVI" onDismiss={() => setOpen(false)}>
-        <View onTouchEnd={() => setOpen(false)}>
+      <Sheet
+        visible={open}
+        title="WHISKYNAVI"
+        returnFocusRef={menuRef}
+        onDismiss={() => setOpen(false)}
+      >
+        <View style={{ gap: 4 }}>
           {[
             ["/about", "회사소개"],
             ["/brand", "브랜드"],
@@ -81,7 +106,7 @@ export function BrandHeader() {
             ["/sign-in", "로그인"],
             ["/terms", "이용약관"],
           ].map(([href, label]) => (
-            <NavLink key={href} href={href}>
+            <NavLink key={href} href={href} onPress={() => setOpen(false)}>
               {label}
             </NavLink>
           ))}
@@ -155,14 +180,22 @@ export function PageHero({
   );
 }
 export function BottleCard({ bottle }: { bottle: BottleResponse }) {
-  const { width } = useWindowDimensions();
-  const padding = width >= 375 ? 16 : 10;
+  const [pressed, setPressed] = useState(false);
+  const { width, fontScale } = useWindowDimensions();
+  const padding = width >= 375 || fontScale > 1.3 ? 16 : 10;
   const imagePadding = width >= 375 ? 16 : 6;
   return (
     <Link href={`/archive/${bottle.id}`} asChild>
       <Pressable
         accessibilityLabel={bottle.name}
-        style={{ ...brand.card, padding, paddingBottom: 8 }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={{
+          ...brand.card,
+          padding,
+          paddingBottom: 8,
+          opacity: pressed ? 0.7 : 1,
+        }}
       >
         <View style={{ aspectRatio: 1, marginBottom: 8 }}>
           <Image
@@ -176,9 +209,7 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
           />
         </View>
         <Text style={brand.meta}>{bottle.series ?? ""}</Text>
-        <Text numberOfLines={2} style={brand.name}>
-          {bottle.name}
-        </Text>
+        <Text style={brand.name}>{bottle.name}</Text>
         {bottle.supplyPrice != null || bottle.consumerPrice != null ? (
           <View
             style={{
@@ -205,10 +236,7 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
           </View>
         ) : null}
         <View style={[brand.between, { marginTop: 8 }]}>
-          <Text
-            numberOfLines={1}
-            style={[brand.meta, { flex: 1, color: "#9299a3" }]}
-          >
+          <Text style={[brand.meta, { flex: 1, color: colors.muted }]}>
             {bottle.distillery}
           </Text>
           {bottle.abv != null ? (
@@ -222,13 +250,14 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
 export { Search, ChevronDown };
 export const brand = StyleSheet.create({
   icon: {
-    width: 40,
-    height: 44,
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
   },
   hero: {
-    height: 200,
+    minHeight: 200,
+    paddingBottom: 24,
     backgroundColor: "#11181e",
     marginHorizontal: -16,
     alignItems: "center",
@@ -245,16 +274,15 @@ export const brand = StyleSheet.create({
   },
   card: {
     width: "100%",
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...bottleFrame,
     padding: 10,
     paddingBottom: 8,
   },
   meta: {
     fontFamily: "NaviSansMedium",
     fontSize: 12,
-    lineHeight: 12,
-    color: "#9ca3af",
+    lineHeight: 18,
+    color: colors.muted,
   },
   name: {
     fontFamily: "NaviSansMedium",

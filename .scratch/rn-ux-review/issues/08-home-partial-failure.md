@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** medium
 
@@ -19,3 +19,9 @@
 - [ ] 외부 API 차단·인증 경계와 기존 Query 캐시의 안전한 동작을 보존한다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+배너·신상품·영상을 독립 Query로 병렬 조회하며 각각 로딩/오류/재시도를 제공한다. 배너 장애 시 보틀 사용·실패 부분만 재조회, 보틀 장애 시 배너 연결 이동 E2E 통과.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

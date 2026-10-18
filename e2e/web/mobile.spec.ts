@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
 async function login(page: Page, callback = "/") {
   await page.goto(`/sign-in?callbackUrl=${encodeURIComponent(callback)}`);
   await page
@@ -373,4 +373,346 @@ test("catalogue sale badge stays inside its two-column card", async ({
   expect(inner!.x + inner!.width).toBeLessThanOrEqual(
     outer!.x + outer!.width - 15,
   );
+});
+
+test("menu keyboard selection closes the sheet, including the current route", async ({
+  page,
+}) => {
+  await page.goto("/archive");
+  await page.getByRole("button", { name: "메뉴 열기" }).click();
+  const item = page
+    .getByRole("dialog")
+    .getByRole("link", { name: "아카이브", exact: true });
+  await item.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("button", { name: "완료", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "메뉴 열기" }).click();
+  await page.getByRole("link", { name: "브랜드", exact: true }).click();
+  await expect(page).toHaveURL(/\/brand$/);
+  await expect(
+    page.getByRole("button", { name: "완료", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("sheet contains keyboard focus and restores its opener", async ({
+  page,
+}) => {
+  await page.goto("/archive");
+  const opener = page.getByRole("button", { name: "필터", exact: true });
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("아카이브 필터", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "완료", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await expect(opener).not.toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("아카이브 필터", { exact: true })).toHaveCount(0);
+  await expect(opener).toBeFocused();
+});
+
+test("header controls and archive series have comfortable touch bounds", async ({
+  page,
+}) => {
+  await page.goto("/archive");
+  for (const label of ["메뉴 열기", "일반상품 장바구니", "WHISKYNAVI"]) {
+    const control = page.getByLabel(label, { exact: true });
+    await expect(control).toBeVisible();
+    const box = await control.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(48);
+    expect(box!.width).toBeGreaterThanOrEqual(48);
+  }
+});
+
+test("login validates inline, reveals password and keeps values after server rejection", async ({
+  page,
+}) => {
+  await page.goto("/sign-in");
+  const email = page.getByRole("textbox", { name: "이메일 주소", exact: true });
+  const password = page.getByLabel("비밀번호", { exact: true });
+  await email.fill("invalid@");
+  await password.fill("incorrect");
+  await expect(
+    page.getByText("올바른 이메일 주소를 입력해주세요."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "로그인", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "비밀번호 표시", exact: true })
+    .click();
+  await expect(password).toHaveJSProperty("type", "text");
+  await page
+    .getByRole("button", { name: "비밀번호 숨기기", exact: true })
+    .click();
+  await expect(password).toHaveAttribute("type", "password");
+  await email.fill("wrong@example.test");
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("로그인");
+  await expect(email).toHaveValue("wrong@example.test");
+  await expect(password).toHaveValue("incorrect");
+  await expect(email).toBeFocused();
+});
+
+const previewImage =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="#252d32"/></svg>',
+  );
+const bannersResponse = {
+  content: [
+    {
+      id: 1,
+      title: "첫 번째 배너",
+      link: "/archive",
+      backgroundUrl: previewImage,
+    },
+    {
+      id: 2,
+      title: "두 번째 배너",
+      link: "/brand",
+      backgroundUrl: previewImage,
+    },
+  ],
+};
+
+test("home banner pauses and supports explicit previous/next navigation", async ({
+  page,
+}) => {
+  await page.route("**/api/banners?*", (route) =>
+    route.fulfill({ json: bannersResponse }),
+  );
+  await page.goto("/");
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await page.clock.install();
+  await page.getByRole("button", { name: "배너 일시정지" }).click();
+  await page.getByRole("button", { name: "다음 배너", exact: true }).click();
+  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
+  await page.clock.fastForward(11000);
+  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "이전 배너", exact: true }).click();
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+});
+
+test("reduced motion disables automatic banner changes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("**/api/banners?*", (route) =>
+    route.fulfill({ json: bannersResponse }),
+  );
+  await page.goto("/");
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "배너 자동 재생" }),
+  ).toBeDisabled();
+  await page.clock.install();
+  await page.clock.fastForward(11000);
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "다음 배너", exact: true }).click();
+  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
+});
+
+test("home keeps arrivals usable when banners fail and retries only the failed section", async ({
+  page,
+}) => {
+  let failed = true;
+  let bottleRequests = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/bottles") bottleRequests++;
+  });
+  await page.route("**/api/banners?*", (route) =>
+    failed
+      ? route.fulfill({ status: 503, json: { message: "fixture unavailable" } })
+      : route.fulfill({ json: bannersResponse }),
+  );
+  await page.goto("/");
+  const card = page.getByRole("link", {
+    name: "네이비 싱글캐스크 12",
+    exact: true,
+  });
+  await expect(card).toBeVisible();
+  const retry = page.getByRole("button", {
+    name: "배너 다시 불러오기",
+    exact: true,
+  });
+  await expect(retry).toBeVisible({ timeout: 15000 });
+  const count = bottleRequests;
+  failed = false;
+  await retry.click();
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  expect(bottleRequests).toBe(count);
+  await card.click();
+  await expect(page.getByText("테이스팅 노트", { exact: true })).toBeVisible();
+});
+
+test("gallery provides button alternatives and accurate boundary states", async ({
+  page,
+}) => {
+  await page.route("**/api/bottles/1", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      json: {
+        ...(await response.json()),
+        imgUrl: previewImage,
+        imageUrls: [previewImage + "%20"],
+      },
+    });
+  });
+  await page.goto("/archive/1");
+  const previous = page.getByRole("button", {
+    name: "이전 이미지",
+    exact: true,
+  });
+  const next = page.getByRole("button", { name: "다음 이미지", exact: true });
+  await expect(previous).toBeDisabled();
+  await next.click();
+  await expect(page.getByText("2 / 2", { exact: true })).toBeVisible();
+  await expect(next).toBeDisabled();
+  await previous.click();
+  await expect(page.getByText("1 / 2", { exact: true })).toBeVisible();
+});
+
+test("font download failure still allows navigation with fallback text", async ({
+  page,
+}) => {
+  await page.route("**/*.ttf", (route) => route.abort("failed"));
+  await page.goto("/archive");
+  await page
+    .getByRole("link", { name: "네이비 싱글캐스크 12", exact: true })
+    .click();
+  await expect(page.getByText("테이스팅 노트", { exact: true })).toBeVisible();
+});
+
+test("font delay keeps content usable or offers a working fallback", async ({
+  page,
+}) => {
+  const held: Route[] = [];
+  await page.route("**/*.ttf", (route) => {
+    held.push(route);
+  });
+  await page.goto("/archive", { waitUntil: "domcontentloaded" });
+  const fallback = page.getByRole("button", {
+    name: "기본 글꼴로 계속하기",
+    exact: true,
+  });
+  const card = page.getByRole("link", {
+    name: "네이비 싱글캐스크 12",
+    exact: true,
+  });
+  await expect(fallback.or(card)).toBeVisible({ timeout: 7000 });
+  if (await fallback.isVisible()) await fallback.click();
+  await card.click();
+  await expect(page.getByText("테이스팅 노트", { exact: true })).toBeVisible();
+  expect(held.length).toBeGreaterThan(0);
+  await Promise.all(held.map((route) => route.abort("failed")));
+});
+
+test("home retains banners and navigation when arrivals fail", async ({
+  page,
+}) => {
+  await page.route("**/api/banners?*", (route) =>
+    route.fulfill({ json: bannersResponse }),
+  );
+  await page.route("**/api/bottles?*", (route) =>
+    route.fulfill({ status: 503, json: { message: "fixture unavailable" } }),
+  );
+  await page.goto("/");
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "새 제품 다시 불러오기", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "자세히 보기", exact: true }).click();
+  await expect(page).toHaveURL(/\/archive$/);
+});
+
+test("commerce text and status colors exceed normal text contrast", async ({
+  page,
+}) => {
+  await page.goto("/general-items");
+  const card = page.getByTestId("product-card-1");
+  await expect(card).toBeVisible();
+  for (const target of [
+    card.getByText("판매중", { exact: true }),
+    card.getByText("상세보기", { exact: true }),
+  ]) {
+    const contrast = await target.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const luminance = (color: string) => {
+        const values = color
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number)
+          .map((value) => {
+            const channel = value / 255;
+            return channel <= 0.04045
+              ? channel / 12.92
+              : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+        return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+      };
+      const foreground = luminance(style.color);
+      let surface: Element | null = element;
+      while (
+        surface?.parentElement &&
+        getComputedStyle(surface).backgroundColor === "rgba(0, 0, 0, 0)"
+      )
+        surface = surface.parentElement;
+      const background = luminance(getComputedStyle(surface!).backgroundColor);
+      return (
+        (Math.max(foreground, background) + 0.05) /
+        (Math.min(foreground, background) + 0.05)
+      );
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+test("filter checkbox selection reaches the API and reset is always available", async ({
+  page,
+}) => {
+  await page.goto("/archive");
+  await page.getByRole("button", { name: "필터", exact: true }).click();
+  const choice = page.getByRole("checkbox", {
+    name: "WhiskyNavi",
+    exact: true,
+  });
+  await expect(choice).toBeVisible();
+  const filtered = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === "/api/2.0/bottles" &&
+      new URL(request.url()).searchParams
+        .getAll("brand")
+        .includes("WhiskyNavi"),
+  );
+  await choice.click();
+  await filtered;
+  await expect(choice).toBeChecked();
+  await page.getByRole("button", { name: "필터 초기화", exact: true }).click();
+  await expect(choice).not.toBeChecked();
+  await page.getByRole("button", { name: "완료", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "네이비 싱글캐스크 12", exact: true }),
+  ).toBeVisible();
+});
+
+test("banner autoplay advances, pauses during keyboard focus and resumes explicitly", async ({
+  page,
+}) => {
+  await page.route("**/api/banners?*", (route) =>
+    route.fulfill({ json: bannersResponse }),
+  );
+  await page.clock.install();
+  await page.goto("/");
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await page.clock.fastForward(5100);
+  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "다음 배너", exact: true }).focus();
+  await page.clock.fastForward(5100);
+  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "배너 일시정지" }).click();
+  await page.getByRole("button", { name: "배너 자동 재생" }).click();
+  await page.getByRole("link", { name: "WHISKYNAVI", exact: true }).focus();
+  await page.clock.fastForward(5100);
+  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
 });

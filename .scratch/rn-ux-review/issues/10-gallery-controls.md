@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** medium
 
@@ -19,3 +19,9 @@
 - [ ] 기본 이미지 비율·패널 여백·기존 상세 뒤로가기를 유지한다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+갤러리에 이전/다음 버튼·끝 disabled·현재 이미지 안내와 이미지 없을 때 대체 표시를 추가했다. 2장 fixture의 처음→마지막→처음 여정 통과. 네이티브 스와이프 병행 검증 대기.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

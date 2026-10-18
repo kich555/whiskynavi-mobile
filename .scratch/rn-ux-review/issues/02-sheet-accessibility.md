@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** high
 
@@ -19,3 +19,9 @@
 - [ ] 웹 키보드 회귀와 실제 native runtime의 화면낭독기 검증을 구분해 남기며 미실행을 통과 처리하지 않는다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+기존 Modal을 유지하고 native 제목 포커스·접근성 escape·호출 버튼 복귀 및 키보드 회피를 추가했다. 웹은 Modal 기본 포커스 트랩·Escape·복귀를 E2E로 확인했다. 네이티브 기본 동작 사전 측정과 VoiceOver/TalkBack 비교는 도구 부재로 미실행이며 이 티켓은 종료하지 않는다.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

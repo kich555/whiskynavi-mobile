@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** medium
 
@@ -19,3 +19,9 @@
 - [ ] 키보드가 열린 입력 흐름에서도 활성 필드와 후속 동작에 접근할 수 있다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+큰 fontScale에서는 아카이브·신상품·상품을 한 열로 표시하고 보틀·상품명 줄 제한을 제거했다. 메타 lineHeight 18, hero minHeight로 바꿨다. 320/430px 웹 회귀 통과. 기기 fontScale 1.6/2.0 검증은 대기.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

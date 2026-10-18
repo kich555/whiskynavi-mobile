@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** low
 
@@ -19,3 +19,9 @@
 - [ ] 이 티켓을 다른 기능 개선의 인위적인 선행 조건으로 삼지 않는다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+보틀 목록·상세의 테두리 기준을 bottleFrame으로 공유하고 muted 색과 읽기 간격을 정리했다. 375px 기본 분기·원본 이미지·정보 순서 유지. 목록/상세/빈 검색/장애/복귀 및 시각 회귀 통과.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

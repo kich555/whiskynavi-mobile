@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** low
 
@@ -18,3 +18,9 @@
 - [ ] 홈→아카이브→상세→뒤로가기에서 선택 위치와 기존 목록 상태를 회귀 검증한다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+웹 탭에 현재 경로의 글자·아이콘 굵기와 색을 추가했다. 메뉴·카드·헤더·상품 버튼에 누름 피드백을 보완하고 native tabs는 유지했다. 주요 탐색 회귀 통과.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

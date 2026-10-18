@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** implemented-awaiting-native-verification
 
 **Priority:** medium
 
@@ -19,3 +19,9 @@
 - [ ] 이메일 복구 흐름은 합성 fixture로만 검증하며 실제 메일 발송·실제 계정 암호 변경을 수행하지 않는다.
 
 **Verification boundary:** 기존 사용자 조작→fixture API→표시 결과의 여정을 사용한다. 스키마·API 변경이 필요 없는 티켓에 가상의 백엔드 작업을 추가하지 않는다. 실제 실행한 검증만 완료 증거로 남긴다.
+
+## 구현 진행 — 2026-10-18
+
+이메일 blur 오류와 설명 연결, 비밀번호 표시/숨김, 다음/전송 키, API 거절 후 값 유지 및 이메일 포커스, 수정 시 과거 오류 제거를 추가했다. 비밀번호 관리자·붙여넣기를 유지하며 기존 중복 요청 잠금을 재사용한다. 웹 여정 통과, 네이티브 키보드·낭독기 대기.
+
+세부 증거와 남은 검증: [구현 기록](../IMPLEMENTATION.md). 수용 기준 체크박스는 실제 네이티브 증거 없이 일괄 완료 처리하지 않는다.

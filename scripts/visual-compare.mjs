@@ -37,6 +37,7 @@ const routes = [
   { name: "reservation", path: "/reservation", ready: "예약하기" },
 ];
 const errors = [];
+let screenshots = 0;
 try {
   for (const route of routes) {
     for (const [label, origin] of [
@@ -99,6 +100,30 @@ try {
         path: `${directory}/${label}-${route.name}.png`,
         animations: "disabled",
       });
+      screenshots++;
+      if (label === "rn" && route.name === "archive") {
+        await page.getByRole("button", { name: "필터", exact: true }).click();
+        await page.getByRole("dialog").waitFor({ state: "visible" });
+        await page.screenshot({
+          path: `${directory}/rn-archive-filter.png`,
+          animations: "disabled",
+        });
+        screenshots++;
+      }
+      if (label === "rn" && route.name === "sign-in") {
+        await page
+          .getByRole("textbox", { name: "이메일 주소", exact: true })
+          .fill("preview@");
+        await page.getByLabel("비밀번호", { exact: true }).focus();
+        await page
+          .getByText("올바른 이메일 주소를 입력해주세요.")
+          .waitFor({ state: "visible" });
+        await page.screenshot({
+          path: `${directory}/rn-sign-in-error.png`,
+          animations: "disabled",
+        });
+        screenshots++;
+      }
       console.log(`${label}: ${route.path}`);
       await page.close();
     }
@@ -126,7 +151,7 @@ try {
   );
   console.log(
     JSON.stringify({
-      screenshots: routes.length * 2,
+      screenshots,
       blockedRequests: blocked.length,
       pageErrors: errors.length,
       report: `${directory}/index.html`,

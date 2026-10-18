@@ -1,0 +1,32 @@
+appId: ${APP_ID}
+name: Menu, filter and password visibility controls
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
+- tapOn: 메뉴 열기
+- tapOn: 아카이브
+- assertNotVisible: 완료
+- assertVisible: 네이비 싱글캐스크 12
+- tapOn: 필터
+- assertVisible: 아카이브 필터
+- assertVisible: 필터 초기화
+- tapOn: 완료
+- assertVisible: 네이비 싱글캐스크 12
+- takeScreenshot: artifacts/design-archive
+- openLink: whiskynavi-e2e://sign-in
+- tapOn:
+    id: field-email
+- inputText: rn@example.test
+- tapOn:
+    id: field-password
+- inputText: mobile-e2e-123
+- hideKeyboard
+- tapOn: 비밀번호 표시
+- assertVisible: 비밀번호 숨기기
+- tapOn: 비밀번호 숨기기
+- assertVisible: 비밀번호 표시
+- takeScreenshot: artifacts/design-sign-in

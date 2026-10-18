@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
 import { randomUUID } from "expo-crypto";
 import { router, useLocalSearchParams } from "expo-router";
-import { useRef, useState, useSyncExternalStore } from "react";
-import { View } from "react-native";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
 import {
   postApiAuthLogin,
   postApiAuthCheckEmail,
@@ -16,6 +16,8 @@ import {
   postApiUserNiceidSession,
 } from "@/apis/generated/api";
 import {
+  colors,
+  styles,
   Action,
   Field,
   Label,
@@ -38,7 +40,42 @@ export function SignInScreen() {
   }>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailInput = useRef<TextInput>(null);
+  const passwordInput = useRef<TextInput>(null);
+  const emailError =
+    emailTouched && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ? "올바른 이메일 주소를 입력해주세요."
+      : undefined;
   const task = useTask();
+  useEffect(() => {
+    if (task.error) emailInput.current?.focus();
+  }, [task.error]);
+  const submit = () => {
+    setEmailTouched(true);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      emailInput.current?.focus();
+      return;
+    }
+    if (!password) {
+      passwordInput.current?.focus();
+      return;
+    }
+    void task.run(async () => {
+      const { data } = await postApiAuthLogin({
+        email: email.trim(),
+        password,
+      });
+      if (!data.accessToken || !data.refreshToken)
+        throw new Error("로그인 응답에 인증 정보가 없습니다.");
+      await session.set({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
+      router.replace(safeReturnPath(callbackUrl) as never);
+    });
+  };
   return (
     <Screen
       contentStyle={{
@@ -59,6 +96,15 @@ export function SignInScreen() {
       ) : null}
       <Field
         label="이메일 주소"
+        nativeID="sign-in-email"
+        inputRef={emailInput}
+        error={emailError}
+        onBlur={() => setEmailTouched(true)}
+        returnKeyType="next"
+        onSubmitEditing={() => {
+          setEmailTouched(true);
+          passwordInput.current?.focus();
+        }}
         placeholder="ex) whiskynavi@whiskynavi.com"
         style={{
           backgroundColor: "transparent",
@@ -71,10 +117,38 @@ export function SignInScreen() {
         keyboardType="email-address"
         autoComplete="email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(value) => {
+          setEmail(value);
+          task.clearError();
+        }}
       />
       <Field
         label="비밀번호"
+        nativeID="sign-in-password"
+        inputRef={passwordInput}
+        returnKeyType="go"
+        onSubmitEditing={submit}
+        trailing={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              showPassword ? "비밀번호 숨기기" : "비밀번호 표시"
+            }
+            accessibilityState={{ checked: showPassword }}
+            onPress={() => setShowPassword((value) => !value)}
+            style={({ pressed }) => ({
+              minWidth: 48,
+              minHeight: 48,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text style={[styles.text, { color: colors.muted }]}>
+              {showPassword ? "숨김" : "표시"}
+            </Text>
+          </Pressable>
+        }
         style={{
           backgroundColor: "transparent",
           borderWidth: 0,
@@ -83,30 +157,21 @@ export function SignInScreen() {
           borderRadius: 0,
           paddingHorizontal: 0,
         }}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         autoComplete="current-password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(value) => {
+          setPassword(value);
+          task.clearError();
+        }}
       />
       <Message error={task.error} />
       <Action
         title={task.pending ? "로그인 중…" : "로그인"}
-        disabled={task.pending || !email.trim() || !password}
-        onPress={() =>
-          void task.run(async () => {
-            const { data } = await postApiAuthLogin({
-              email: email.trim(),
-              password,
-            });
-            if (!data.accessToken || !data.refreshToken)
-              throw new Error("로그인 응답에 인증 정보가 없습니다.");
-            await session.set({
-              accessToken: data.accessToken,
-              refreshToken: data.refreshToken,
-            });
-            router.replace(safeReturnPath(callbackUrl) as never);
-          })
+        disabled={
+          task.pending || !email.trim() || !password || Boolean(emailError)
         }
+        onPress={submit}
       />
       <View
         style={{

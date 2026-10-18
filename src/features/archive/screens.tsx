@@ -1,10 +1,25 @@
-import { Search } from "lucide-react-native";
-import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Image } from "expo-image";
-import { BottleCard, PageHero, ChevronDown } from "@/components/native/brand";
 import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  Search,
+} from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Image } from "expo-image";
+import {
+  BottleCard,
+  PageHero,
+  ChevronDown,
+  bottleFrame,
+} from "@/components/native/brand";
+import {
+  AccessibilityInfo,
+  AppState,
+  Platform,
   Linking,
   TextInput,
   View,
@@ -37,7 +52,6 @@ import {
   PagedList,
   Screen,
   Sheet,
-  Toggle,
   go,
   money,
   styles,
@@ -45,44 +59,123 @@ import {
 import { RichContent } from "@/components/native/rich-content";
 
 export function HomeScreen() {
-  const query = useQuery({
-    queryKey: ["home"],
-    queryFn: async () => {
-      const [banners, bottles, youtube] = await Promise.all([
-        getApiBanners({ page: 0, size: 10 }),
-        getApiBottles({ page: 0, size: 8, sort: ["bottledDate,desc"] }),
-        getApiKvStore("youtube_embed_url").catch(() => ({
-          data: { value: "" },
-        })),
-      ]);
-      return {
-        banners: banners.data.content ?? [],
-        bottles: bottles.data.content ?? [],
-        youtube: youtube.data.value ?? "",
-      };
-    },
+  const bannersQuery = useQuery({
+    queryKey: ["home", "banners"],
+    queryFn: () => getApiBanners({ page: 0, size: 10 }),
+  });
+  const bottlesQuery = useQuery({
+    queryKey: ["home", "bottles"],
+    queryFn: () =>
+      getApiBottles({ page: 0, size: 8, sort: ["bottledDate,desc"] }),
+  });
+  const youtubeQuery = useQuery({
+    queryKey: ["home", "youtube"],
+    queryFn: () => getApiKvStore("youtube_embed_url"),
   });
   const [slide, setSlide] = useState(0);
-  const { height } = useWindowDimensions();
-  const banners = query.data?.banners ?? [];
+  const [paused, setPaused] = useState(false);
+  const [bannerFocused, setBannerFocused] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [active, setActive] = useState(AppState.currentState === "active");
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  const { height, fontScale } = useWindowDimensions();
+  const banners = bannersQuery.data?.data.content ?? [];
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
   useEffect(() => {
-    if (banners.length < 2) return;
-    const id = setInterval(
+    const app = AppState.addEventListener("change", (state) =>
+      setActive(state === "active"),
+    );
+    if (Platform.OS === "web") {
+      const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const update = () => setMotionAllowed(!media.matches);
+      update();
+      media.addEventListener("change", update);
+      return () => {
+        app.remove();
+        media.removeEventListener("change", update);
+      };
+    }
+    let alive = true;
+    let reduced = true;
+    let reader = true;
+    const update = () => {
+      if (alive) setMotionAllowed(!reduced && !reader);
+    };
+    void Promise.all([
+      AccessibilityInfo.isReduceMotionEnabled(),
+      AccessibilityInfo.isScreenReaderEnabled(),
+    ])
+      .then(([reduceMotion, screenReader]) => {
+        reduced = reduceMotion;
+        reader = screenReader;
+        update();
+      })
+      .catch(() => {});
+    const motion = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (value) => {
+        reduced = value;
+        update();
+      },
+    );
+    const screenReader = AccessibilityInfo.addEventListener(
+      "screenReaderChanged",
+      (value) => {
+        reader = value;
+        update();
+      },
+    );
+    return () => {
+      alive = false;
+      app.remove();
+      motion.remove();
+      screenReader.remove();
+    };
+  }, []);
+  useEffect(() => {
+    if (
+      banners.length < 2 ||
+      paused ||
+      bannerFocused ||
+      !focused ||
+      !active ||
+      !motionAllowed
+    )
+      return;
+    const timer = setInterval(
       () => setSlide((n) => (n + 1) % banners.length),
       5000,
     );
-    return () => clearInterval(id);
-  }, [banners.length]);
+    return () => clearInterval(timer);
+  }, [banners.length, paused, bannerFocused, focused, active, motionAllowed]);
+  const move = (delta: number) => {
+    setPaused(true);
+    setSlide((n) => (n + delta + banners.length) % banners.length);
+  };
   const banner = banners[slide % Math.max(banners.length, 1)];
   return (
     <Screen
-      refresh={() => void query.refetch()}
-      refreshing={query.isFetching}
+      refresh={() => {
+        void bannersQuery.refetch();
+        void bottlesQuery.refetch();
+        void youtubeQuery.refetch();
+      }}
+      refreshing={
+        bannersQuery.isFetching ||
+        bottlesQuery.isFetching ||
+        youtubeQuery.isFetching
+      }
       contentStyle={{ padding: 0, gap: 0 }}
     >
       <View
         style={{
-          height: Math.max(520, height - 128),
+          minHeight: Math.max(440, Math.min(620, height - 220)),
+          paddingVertical: 96,
           justifyContent: "center",
           alignItems: "center",
           paddingHorizontal: 24,
@@ -100,7 +193,7 @@ export function HomeScreen() {
         <View
           style={[StyleSheet.absoluteFill, { backgroundColor: "#00000080" }]}
         />
-        {query.isPending ? (
+        {bannersQuery.isPending ? (
           <Loading />
         ) : (
           <View style={{ alignItems: "center", gap: 12 }}>
@@ -113,7 +206,7 @@ export function HomeScreen() {
                 color: "white",
               }}
             >
-              {banner?.title ?? "배너가 준비 중입니다"}
+              {banner?.title ?? "위스키를 탐험하는 새로운 방법"}
             </Text>
             {banner?.description ? (
               <Text
@@ -142,39 +235,109 @@ export function HomeScreen() {
             ) : null}
           </View>
         )}
-        <View style={{ position: "absolute", right: 8, top: "45%", gap: 0 }}>
-          {banners.map((item, i) => (
+        {bannersQuery.isError ? (
+          <View style={{ marginTop: 16, gap: 8 }}>
+            <Label>배너를 불러오지 못했어요.</Label>
+            <Action
+              secondary
+              title="배너 다시 불러오기"
+              onPress={() => void bannersQuery.refetch()}
+            />
+          </View>
+        ) : null}
+        {banners.length > 1 ? (
+          <View
+            onFocus={() => setBannerFocused(true)}
+            onBlur={() => setBannerFocused(false)}
+            style={{
+              position: "absolute",
+              bottom: 24,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              backgroundColor: "#11181ee6",
+              borderRadius: 28,
+              paddingHorizontal: 8,
+            }}
+          >
             <Pressable
-              key={item.id ?? i}
-              accessibilityLabel={`배너 ${i + 1}`}
-              onPress={() => setSlide(i)}
-              style={{
-                width: 28,
-                height: 32,
+              accessibilityRole="button"
+              accessibilityLabel="이전 배너"
+              onPress={() => move(-1)}
+              style={({ pressed }) => ({
+                width: 48,
+                height: 48,
                 alignItems: "center",
                 justifyContent: "center",
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <ChevronLeft size={20} color="white" />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                paused || !motionAllowed ? "배너 자동 재생" : "배너 일시정지"
+              }
+              accessibilityState={{ disabled: !motionAllowed }}
+              disabled={!motionAllowed}
+              onPress={() => setPaused((value) => !value)}
+              style={{
+                minHeight: 48,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingHorizontal: 8,
               }}
             >
-              <View
-                style={{
-                  width: 2,
-                  height: slide === i ? 16 : 3,
-                  backgroundColor: slide === i ? "white" : "#ffffff60",
-                }}
-              />
+              {paused || !motionAllowed ? (
+                <Play size={16} color="white" />
+              ) : (
+                <Pause size={16} color="white" />
+              )}
+              <Text style={styles.text}>
+                {paused || !motionAllowed ? "재생" : "일시정지"}
+              </Text>
             </Pressable>
-          ))}
-        </View>
-        <View style={{ position: "absolute", bottom: 16 }}>
-          <ChevronDown size={24} color="#ffffff80" />
-        </View>
+            <Text style={styles.text}>
+              {(slide % banners.length) + 1} / {banners.length}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="다음 배너"
+              onPress={() => move(1)}
+              style={({ pressed }) => ({
+                width: 48,
+                height: 48,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <ChevronRight size={20} color="white" />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
       <View style={{ padding: 16, paddingVertical: 24, gap: 16 }}>
-        <Message error={query.error} />
         <Heading>NEW ARRIVALS</Heading>
+        {bottlesQuery.isPending ? <Loading /> : null}
+        {bottlesQuery.isError ? (
+          <View style={{ gap: 12 }}>
+            <Message error="새 제품을 불러오지 못했어요." />
+            <Action
+              secondary
+              title="새 제품 다시 불러오기"
+              onPress={() => void bottlesQuery.refetch()}
+            />
+          </View>
+        ) : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-          {query.data?.bottles.map((bottle) => (
-            <View key={bottle.id} style={{ width: "48.3%" }}>
+          {bottlesQuery.data?.data.content?.map((bottle) => (
+            <View
+              key={bottle.id}
+              style={{ width: fontScale > 1.3 ? "100%" : "48.3%" }}
+            >
               <BottleCard bottle={bottle} />
             </View>
           ))}
@@ -217,16 +380,26 @@ export function HomeScreen() {
           </Pressable>
         ))}
       </View>
-      {query.data?.youtube &&
+      {youtubeQuery.data?.data.value &&
       /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(
-        query.data.youtube,
+        youtubeQuery.data.data.value,
       ) ? (
         <View style={{ padding: 16, gap: 16 }}>
           <Heading>YOUTUBE</Heading>
           <Action
             secondary
             title="위스키내비 영상 보기"
-            onPress={() => void Linking.openURL(query.data!.youtube)}
+            onPress={() => void Linking.openURL(youtubeQuery.data!.data.value!)}
+          />
+        </View>
+      ) : null}
+      {youtubeQuery.isError ? (
+        <View style={{ padding: 16, gap: 12 }}>
+          <Label>영상을 불러오지 못했어요.</Label>
+          <Action
+            secondary
+            title="영상 다시 불러오기"
+            onPress={() => void youtubeQuery.refetch()}
           />
         </View>
       ) : null}
@@ -279,6 +452,14 @@ function ArchiveContent({
   });
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const filterRef = useRef<View>(null);
+  const sortRef = useRef<View>(null);
+  const { fontScale } = useWindowDimensions();
+  const resetFilters = () => {
+    setFilters({});
+    setDraft("");
+    setPage(0);
+  };
   const [sortOpen, setSortOpen] = useState(false);
   const query = useQuery({
     queryKey: ["bottles", filters, page],
@@ -294,7 +475,7 @@ function ArchiveContent({
   };
   return (
     <PagedList
-      columns={2}
+      columns={fontScale > 1.3 ? 1 : 2}
       title="아카이브"
       intro={
         <PageHero
@@ -326,7 +507,7 @@ function ArchiveContent({
               accessibilityLabel="검색"
               onPress={() => update({ keyword: draft.trim() })}
               style={{
-                width: 44,
+                width: 48,
                 height: 48,
                 alignItems: "center",
                 justifyContent: "center",
@@ -361,6 +542,7 @@ function ArchiveContent({
               <Pressable
                 key={value}
                 accessibilityRole="button"
+                aria-pressed={filters.series?.includes(value) ?? false}
                 accessibilityState={{
                   selected: filters.series?.includes(value),
                 }}
@@ -371,8 +553,11 @@ function ArchiveContent({
                       : [...(filters.series ?? []), value],
                   })
                 }
-                style={{
-                  borderRadius: 20,
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.7 : 1,
+                  minHeight: 48,
+                  justifyContent: "center",
+                  borderRadius: 24,
                   borderWidth: 1,
                   borderColor: colors.line,
                   paddingHorizontal: 12,
@@ -380,12 +565,12 @@ function ArchiveContent({
                   backgroundColor: filters.series?.includes(value)
                     ? "white"
                     : colors.surface,
-                }}
+                })}
               >
                 <Text
                   style={{
                     fontFamily: "NaviSansMedium",
-                    fontSize: 12,
+                    fontSize: 14,
                     color: filters.series?.includes(value)
                       ? colors.background
                       : "white",
@@ -398,6 +583,10 @@ function ArchiveContent({
           </ScrollView>
           <Sheet
             visible={expanded}
+            returnFocusRef={filterRef}
+            footer={
+              <Action secondary title="필터 초기화" onPress={resetFilters} />
+            }
             title="아카이브 필터"
             onDismiss={() => setExpanded(false)}
           >
@@ -463,19 +652,11 @@ function ArchiveContent({
                   />
                 ),
               )}
-              <Action
-                secondary
-                title="필터 초기화"
-                onPress={() => {
-                  setFilters({});
-                  setDraft("");
-                  setPage(0);
-                }}
-              />
             </View>
           </Sheet>
           <Sheet
             visible={sortOpen}
+            returnFocusRef={sortRef}
             title="정렬 기준"
             onDismiss={() => setSortOpen(false)}
           >
@@ -525,11 +706,26 @@ function ArchiveContent({
             ].map((item) => (
               <Pressable
                 key={item.title}
+                ref={
+                  item.title === "필터"
+                    ? filterRef
+                    : item.title === "오름차순" || item.title === "내림차순"
+                      ? undefined
+                      : sortRef
+                }
+                accessibilityState={{
+                  expanded:
+                    item.title === "필터"
+                      ? expanded
+                      : item.title === "오름차순" || item.title === "내림차순"
+                        ? undefined
+                        : sortOpen,
+                }}
                 accessibilityRole="button"
                 onPress={item.press}
                 style={{
                   flex: 1,
-                  minHeight: 44,
+                  minHeight: 48,
                   borderWidth: 1,
                   borderColor: colors.line,
                   borderRadius: 8,
@@ -572,8 +768,7 @@ export function BottleScreen() {
       {bottle ? (
         <View
           style={{
-            borderWidth: 1,
-            borderColor: colors.line,
+            ...bottleFrame,
             backgroundColor: colors.surface,
             padding: 16,
             gap: 24,
@@ -864,15 +1059,42 @@ function FilterOptions({
   selected: string[];
   onChange: (values: string[]) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(title === "브랜드");
   const [search, setSearch] = useState("");
   return (
-    <View style={styles.section}>
-      <Action
-        secondary
-        title={`${title}${selected.length ? ` (${selected.length})` : ""}`}
+    <View
+      style={{
+        gap: 12,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderColor: colors.line,
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${title}${selected.length ? ` (${selected.length})` : ""}`}
+        accessibilityState={{ expanded: open }}
         onPress={() => setOpen(!open)}
-      />
+        style={({ pressed }) => ({
+          minHeight: 48,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Text style={styles.heading}>{title}</Text>
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <Text style={styles.muted}>
+            {selected.length ? `${selected.length}개 선택` : "전체"}
+          </Text>
+          <ChevronDown
+            color={colors.muted}
+            size={18}
+            style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}
+          />
+        </View>
+      </Pressable>
       {open ? (
         <>
           <Field
@@ -886,18 +1108,49 @@ function FilterOptions({
             )
             .slice(0, 100)
             .map((value) => (
-              <Toggle
+              <Pressable
                 key={value}
-                label={value}
-                value={selected.includes(value)}
-                onChange={(checked) =>
+                accessibilityRole="checkbox"
+                aria-checked={selected.includes(value)}
+                accessibilityLabel={value}
+                accessibilityState={{ checked: selected.includes(value) }}
+                onPress={() =>
                   onChange(
-                    checked
-                      ? [...selected, value]
-                      : selected.filter((item) => item !== value),
+                    selected.includes(value)
+                      ? selected.filter((item) => item !== value)
+                      : [...selected, value],
                   )
                 }
-              />
+                style={({ pressed }) => ({
+                  minHeight: 48,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: selected.includes(value)
+                      ? "white"
+                      : colors.muted,
+                    backgroundColor: selected.includes(value)
+                      ? "white"
+                      : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {selected.includes(value) ? (
+                    <Check size={16} color={colors.background} />
+                  ) : null}
+                </View>
+                <Text style={[styles.text, { flex: 1 }]}>{value}</Text>
+              </Pressable>
             ))}
         </>
       ) : null}
