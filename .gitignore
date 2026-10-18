@@ -41,3 +41,9 @@ example
 # generated native folders
 /ios
 /android
+
+# Local starter backup and test artifacts
+.migration-backup/
+artifacts/
+
+.e2e-dist/

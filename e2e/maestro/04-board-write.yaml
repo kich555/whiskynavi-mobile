@@ -1,0 +1,23 @@
+appId: ${APP_ID}
+name: Native post creation with isolated API
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- runFlow: helpers/login.yaml
+- openLink: whiskynavi-e2e://board/community/posts/new
+- tapOn:
+    id: field-title
+- inputText: Mobile E2E Post
+- tapOn:
+    id: field-content
+- inputText: Native editor regression content
+- hideKeyboard
+- scrollUntilVisible:
+    element: 저장
+    direction: DOWN
+- tapOn: 저장
+- extendedWaitUntil:
+    visible: Mobile E2E Post
+    timeout: 15000
+- assertVisible: Native editor regression content

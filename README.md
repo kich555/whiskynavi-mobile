@@ -1,56 +1,88 @@
-# Welcome to your Expo app 👋
+# WhiskyNavi Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+기존 WhiskyNavi 사용자 웹 화면을 React Native로 옮긴 Expo 앱입니다. Expo SDK 57, React 19, TypeScript, Expo Router를 사용합니다.
 
-## Get started
+## 바로 실행
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+cd ~/Documents/dev/navi/whiskynavi-mobile
+npm ci
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+휴대폰에 Expo Go를 설치하고 컴퓨터와 같은 Wi-Fi에서 QR 코드를 스캔하세요. iPhone은 카메라, Android는 Expo Go에서 스캔합니다. 브라우저 미리보기는 `npm run web`입니다.
 
-### Other setup steps
+Xcode가 설치된 Mac의 iOS 시뮬레이터는 `npm run ios`, Android SDK와 실행 중인 에뮬레이터가 있으면 `npm run android`를 사용할 수 있습니다. Expo Go 외부 앱 복귀와 결제 검증에는 별도 네이티브 빌드가 필요할 수 있습니다.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+공개 설정은 [.env.example](.env.example)을 참고하세요. 기본 API는 `https://api.whiskynavi.com`입니다. 비밀번호·토큰·서버 비밀을 EXPO_PUBLIC 환경변수에 넣지 않습니다. 원래 웹 프로젝트의 .env는 복사하지 않았습니다.
 
-## Learn more
+## 화면 구성
 
-To learn more about developing your project with Expo, look at the following resources:
+- 하단 탭: 홈 / 아카이브 / 예약 / 쇼핑 / 마이.
+- 아카이브 상세·상품·글·주문·예약 상세는 독립 화면입니다.
+- 필터·상품 옵션·관리자 게시글 관리·개인정보 전문은 하단 시트로 표시합니다.
+- 키보드가 필요한 긴 폼은 별도 화면으로 구성합니다.
+- 사용자 화면은 RN 요소로 구현했습니다. NICE·토스·카드사 제공 화면에만 전용 WebView를 사용합니다.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+원본 `(main)` 53개 페이지와 `nice` 1개 페이지를 53개 URL로 정리했습니다. 중복된 아카이브 모달 URL은 상세 화면으로 합쳤으며 쇼핑 탭 진입용 `/shop`을 추가했습니다. [전체 대응표](route-migration.json)와 [마이그레이션 상태](MIGRATION.md)를 참고하세요.
 
-## Join the community
+## React 개발자를 위한 안내
 
-Join our community of developers creating universal apps.
+컴포넌트, JSX, props, useState, useEffect, Context는 익숙한 방식으로 사용합니다.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+| 웹 React      | React Native                   |
+| ------------- | ------------------------------ |
+| div           | View                           |
+| p, span       | Text                           |
+| onClick       | Pressable의 onPress            |
+| input         | TextInput                      |
+| CSS           | StyleSheet.create, style 객체  |
+| 스크롤 페이지 | ScrollView, 긴 목록은 FlatList |
+
+숫자 크기는 논리 픽셀이고 Flex 기본 방향은 세로입니다. 텍스트는 Text 안에 넣습니다. Next.js Server Component·Server Action 대신 모바일 API 호출과 Query 캐시를 사용합니다.
+
+| 위치                      | 역할                                |
+| ------------------------- | ----------------------------------- |
+| src/app/(main)/(tabs)     | 하단 탭 진입점                      |
+| src/app/(main)            | 상세·입력·결과 화면의 URL 연결      |
+| src/features              | 실제 화면과 도메인별 동작           |
+| src/components/native     | 버튼·폼·시트·목록·본문 렌더링       |
+| src/apis/generated/api.ts | 웹과 동일한 자동 생성 API 계약      |
+| src/apis/mutator.ts       | 모바일 네트워크·인증 갱신·오류 처리 |
+| src/lib/session.ts        | 로그인 상태, SecureStore 저장       |
+| app.config.ts             | 앱 식별자와 운영/E2E 빌드 구분      |
+
+처음 수정할 화면은 `src/features/archive/screens.tsx`의 HomeScreen입니다. 글자나 간격을 바꾸고 휴대폰에 반영되는지 확인하며 시작하세요.
+
+## 검사와 E2E
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build:bundles
+npm run test:e2e:validate
+npm run test:e2e:doctor -- android
+npx playwright install chromium
+npm run test:e2e:web
+npm run test:e2e:android
+```
+
+[테스트 안내](e2e/README.md)에 로컬 도구, iOS 실행, fixture 서버, Maestro 시나리오와 GitHub Actions 구성을 정리했습니다. 웹 E2E와 네이티브 E2E는 서로 다른 검증입니다. 현재 E2E는 로컬 fixture만 허용하고 외부 요청을 전송 전에 차단합니다. 초기 검증에서 발생한 운영 요청과 미정리 항목은 [마이그레이션 상태](MIGRATION.md)에 기록했습니다.
+
+GitHub Actions workflow는 저장되어 있으며 원격 GitHub에서 실행한 상태는 아닙니다. 배포용 서명키·스토어 제출은 별도 작업입니다.
+
+## API 계약 동기화
+
+웹에서 `pnpm gen:api`로 재생성한 뒤 이 프로젝트에서 `npm run api:sync`를 실행합니다. 다른 경로라면 `npm run api:sync -- /절대/경로/웹프로젝트`를 사용하세요. 자동 생성 파일을 직접 수정하지 말고 모바일 어댑터를 수정합니다.
+
+## 공식 문서
+
+- [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/)
+- [React Native 기본 요소](https://reactnative.dev/docs/intro-react-native-components)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
+- [Maestro 설치](https://docs.maestro.dev/maestro-cli/how-to-install-maestro-cli)
+
+## 웹 디자인과 비교하기
+
+웹 서버가 3100에서 실행 중일 때 `npm run web:compare`로 RN 비교 서버를 8082에서 실행합니다. 웹과 같은 공개 API 주소를 자동으로 사용합니다. `npm run design:compare`는 390×844 화면의 비교 보고서를 `artifacts/design-sync/index.html`에 만듭니다. 기준과 의도적인 네이티브 차이는 [DESIGN.md](DESIGN.md)에 있습니다.

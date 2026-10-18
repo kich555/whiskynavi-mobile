@@ -1,0 +1,11 @@
+appId: ${APP_ID}
+name: Credentials login and native account screen
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- runFlow: helpers/login.yaml
+- openLink: whiskynavi-e2e://my-page
+- assertVisible: 모바일테스터님
+- assertVisible: rn@example.test
+- takeScreenshot: artifacts/account

@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+name: Native reservation application
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- runFlow: helpers/login.yaml
+- openLink: whiskynavi-e2e://reservation/1
+- extendedWaitUntil:
+    visible: 싱글캐스크 예약
+    timeout: 15000
+- scrollUntilVisible:
+    element: 테스트 픽업 매장.*
+    direction: DOWN
+- tapOn: 테스트 픽업 매장.*
+- scrollUntilVisible:
+    element: 예약 신청
+    direction: DOWN
+- tapOn: 예약 신청
+- assertVisible: 예약 정보 수정

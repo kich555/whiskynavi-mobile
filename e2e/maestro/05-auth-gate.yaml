@@ -1,0 +1,12 @@
+appId: ${APP_ID}
+name: Protected routes require authentication
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- openLink: whiskynavi-e2e://my-page/inquiries
+- assertVisible: 로그인이 필요합니다
+- assertVisible: 로그인하고 계속하기
+- openLink: whiskynavi-e2e://nice/callback
+- assertVisible: 본인인증 결과
+- assertVisible: 진행 중인 인증 화면으로 돌아가 주세요. 외부 링크만으로 본인인증을 완료할 수 없습니다.

@@ -1,0 +1,272 @@
+[
+  {
+    "route": "/",
+    "target": "src/app/(main)/(tabs)/index.tsx",
+    "screen": "HomeScreen"
+  },
+  {
+    "route": "/archive",
+    "target": "src/app/(main)/(tabs)/archive.tsx",
+    "screen": "ArchiveScreen"
+  },
+  {
+    "route": "/archive/[bottleId]",
+    "target": "src/app/(main)/archive/[bottleId].tsx",
+    "screen": "BottleScreen"
+  },
+  {
+    "route": "/brand",
+    "target": "src/app/(main)/brand.tsx",
+    "screen": "BrandScreen"
+  },
+  {
+    "route": "/about",
+    "target": "src/app/(main)/about.tsx",
+    "screen": "AboutScreen"
+  },
+  {
+    "route": "/terms",
+    "target": "src/app/(main)/terms.tsx",
+    "screen": "TermsScreen"
+  },
+  {
+    "route": "/shop",
+    "target": "src/app/(main)/(tabs)/shop.tsx",
+    "screen": "ShopScreen"
+  },
+  {
+    "route": "/sign-in",
+    "target": "src/app/(main)/sign-in.tsx",
+    "screen": "SignInScreen"
+  },
+  {
+    "route": "/sign-up",
+    "target": "src/app/(main)/sign-up.tsx",
+    "screen": "SignUpScreen"
+  },
+  {
+    "route": "/find-password",
+    "target": "src/app/(main)/find-password.tsx",
+    "screen": "FindPasswordScreen"
+  },
+  {
+    "route": "/reservation",
+    "target": "src/app/(main)/(tabs)/reservation.tsx",
+    "screen": "ReservationsScreen"
+  },
+  {
+    "route": "/reservation/[noticeId]",
+    "target": "src/app/(main)/reservation/[noticeId].tsx",
+    "screen": "ReservationScreen"
+  },
+  {
+    "route": "/my-page/reservations/[applicationId]",
+    "target": "src/app/(main)/my-page/reservations/[applicationId].tsx",
+    "screen": "ReservationScreen"
+  },
+  {
+    "route": "/my-page",
+    "target": "src/app/(main)/(tabs)/my-page.tsx",
+    "screen": "MyPageScreen"
+  },
+  {
+    "route": "/my-page/inquiries",
+    "target": "src/app/(main)/my-page/inquiries.tsx",
+    "screen": "InquiriesScreen"
+  },
+  {
+    "route": "/my-page/inquiries/new",
+    "target": "src/app/(main)/my-page/inquiries/new.tsx",
+    "screen": "InquiryCreateScreen"
+  },
+  {
+    "route": "/my-page/inquiries/[inquiryId]",
+    "target": "src/app/(main)/my-page/inquiries/[inquiryId].tsx",
+    "screen": "InquiryDetailScreen"
+  },
+  {
+    "route": "/my-page/order/[id]",
+    "target": "src/app/(main)/my-page/order/[id].tsx",
+    "screen": "OrderDetailScreen"
+  },
+  {
+    "route": "/my-page/ticket-orders/[id]",
+    "target": "src/app/(main)/my-page/ticket-orders/[id].tsx",
+    "screen": "OrderDetailScreen"
+  },
+  {
+    "route": "/smart-orders/[orderId]",
+    "target": "src/app/(main)/smart-orders/[orderId].tsx",
+    "screen": "OrderDetailScreen"
+  },
+  {
+    "route": "/my-page/ticket-orders",
+    "target": "src/app/(main)/my-page/ticket-orders.tsx",
+    "screen": "OrdersList"
+  },
+  {
+    "route": "/orders/guest",
+    "target": "src/app/(main)/orders/guest.tsx",
+    "screen": "GuestOrderScreen"
+  },
+  {
+    "route": "/general-items/cart",
+    "target": "src/app/(main)/general-items/cart.tsx",
+    "screen": "CartScreen"
+  },
+  {
+    "route": "/general-items/cart/order",
+    "target": "src/app/(main)/general-items/cart/order.tsx",
+    "screen": "CheckoutScreen"
+  },
+  {
+    "route": "/general-items/delivery-order",
+    "target": "src/app/(main)/general-items/delivery-order.tsx",
+    "screen": "CheckoutScreen"
+  },
+  {
+    "route": "/ticket-products/order",
+    "target": "src/app/(main)/ticket-products/order.tsx",
+    "screen": "CheckoutScreen"
+  },
+  {
+    "route": "/smart-order/[productId]/order",
+    "target": "src/app/(main)/smart-order/[productId]/order.tsx",
+    "screen": "CheckoutScreen"
+  },
+  {
+    "route": "/general-items",
+    "target": "src/app/(main)/general-items.tsx",
+    "screen": "CatalogScreen"
+  },
+  {
+    "route": "/general-items/[saleId]",
+    "target": "src/app/(main)/general-items/[saleId].tsx",
+    "screen": "ProductScreen"
+  },
+  {
+    "route": "/ticket-products",
+    "target": "src/app/(main)/ticket-products.tsx",
+    "screen": "CatalogScreen"
+  },
+  {
+    "route": "/ticket-products/[saleId]",
+    "target": "src/app/(main)/ticket-products/[saleId].tsx",
+    "screen": "ProductScreen"
+  },
+  {
+    "route": "/smart-order",
+    "target": "src/app/(main)/smart-order.tsx",
+    "screen": "CatalogScreen"
+  },
+  {
+    "route": "/smart-order/[productId]",
+    "target": "src/app/(main)/smart-order/[productId].tsx",
+    "screen": "ProductScreen"
+  },
+  {
+    "route": "/board/community",
+    "target": "src/app/(main)/board/community.tsx",
+    "screen": "BoardScreen"
+  },
+  {
+    "route": "/board/community/posts/[postId]",
+    "target": "src/app/(main)/board/community/posts/[postId].tsx",
+    "screen": "PostScreen"
+  },
+  {
+    "route": "/board/community/announcements/[announcementId]",
+    "target": "src/app/(main)/board/community/announcements/[announcementId].tsx",
+    "screen": "PostScreen"
+  },
+  {
+    "route": "/board/community/posts/new",
+    "target": "src/app/(main)/board/community/posts/new.tsx",
+    "screen": "PostEditorScreen"
+  },
+  {
+    "route": "/board/community/posts/[postId]/edit",
+    "target": "src/app/(main)/board/community/posts/[postId]/edit.tsx",
+    "screen": "PostEditorScreen"
+  },
+  {
+    "route": "/board/news",
+    "target": "src/app/(main)/board/news.tsx",
+    "screen": "BoardScreen"
+  },
+  {
+    "route": "/board/news/posts/[postId]",
+    "target": "src/app/(main)/board/news/posts/[postId].tsx",
+    "screen": "PostScreen"
+  },
+  {
+    "route": "/board/news/announcements/[announcementId]",
+    "target": "src/app/(main)/board/news/announcements/[announcementId].tsx",
+    "screen": "PostScreen"
+  },
+  {
+    "route": "/board/news/posts/new",
+    "target": "src/app/(main)/board/news/posts/new.tsx",
+    "screen": "PostEditorScreen"
+  },
+  {
+    "route": "/board/news/posts/[postId]/edit",
+    "target": "src/app/(main)/board/news/posts/[postId]/edit.tsx",
+    "screen": "PostEditorScreen"
+  },
+  {
+    "route": "/general-items/cart/order/toss/success",
+    "target": "src/app/(main)/general-items/cart/order/toss/success.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/general-items/cart/order/toss/fail",
+    "target": "src/app/(main)/general-items/cart/order/toss/fail.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/general-items/delivery-order/toss/success",
+    "target": "src/app/(main)/general-items/delivery-order/toss/success.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/general-items/delivery-order/toss/fail",
+    "target": "src/app/(main)/general-items/delivery-order/toss/fail.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/orders/payment/success",
+    "target": "src/app/(main)/orders/payment/success.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/orders/payment/fail",
+    "target": "src/app/(main)/orders/payment/fail.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/ticket-products/order/toss/success",
+    "target": "src/app/(main)/ticket-products/order/toss/success.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/ticket-products/order/toss/fail",
+    "target": "src/app/(main)/ticket-products/order/toss/fail.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/smart-order/toss/success",
+    "target": "src/app/(main)/smart-order/toss/success.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/smart-order/toss/fail",
+    "target": "src/app/(main)/smart-order/toss/fail.tsx",
+    "screen": "PaymentResultScreen"
+  },
+  {
+    "route": "/nice/callback",
+    "target": "src/app/nice/callback.tsx",
+    "screen": "NiceCallbackScreen"
+  }
+]

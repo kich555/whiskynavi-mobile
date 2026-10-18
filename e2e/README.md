@@ -1,0 +1,87 @@
+# Mobile tests
+
+## 구성
+
+- `npm test`: 인증 갱신, 결제 콜백 대조, 예약 기간, 주문 정책, 마이그레이션 URL 계약 검사.
+- `npm run test:e2e:web`: Playwright로 모바일 폭의 웹 미리보기를 검증합니다. 화면→API→상태 반영을 검사하며 네이티브 E2E의 대체가 아닙니다.
+- `npm run test:e2e:android`: Android release APK 생성·설치 후 Maestro를 실행합니다.
+- `npm run test:e2e:ios`: iOS 시뮬레이터의 Release 앱에서 동일한 Maestro 흐름을 실행합니다.
+
+테스트 API는 `http://127.0.0.1:8787`의 독립된 메모리 fixture입니다. 운영·QA 계정, 이메일 발송, 실제 결제, NICE 본인확인 완료를 사용하지 않습니다. fixture 통과는 실제 백엔드나 외부 결제 검증을 의미하지 않습니다.
+
+## 빠른 로컬 검증
+
+```sh
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run test:e2e:validate
+npx playwright install chromium
+npm run test:e2e:web
+```
+
+## Android 네이티브 E2E
+
+필요한 도구: Node 24, JDK 17, Android Studio/SDK, Android API 36의 실행 중인 에뮬레이터, PATH의 adb, Maestro CLI.
+
+```sh
+npm run test:e2e:android
+```
+
+러너는 E2E 전용 앱 `com.whiskynavi.mobile.e2e`를 만들며 운영 앱과 구분합니다. release 빌드에 JS를 포함하므로 Metro를 띄울 필요가 없습니다. `adb reverse`로 에뮬레이터에서 fixture 서버에 연결합니다. HTTP는 E2E 앱에서만 허용합니다. 첫 빌드는 Android 의존성 다운로드 때문에 오래 걸릴 수 있습니다. 생성되는 android/는 커밋하지 않습니다.
+
+테스트 전에 기존 Metro와 8787 포트의 서버를 종료하세요. 실기기에서는 합성 fixture만 사용하고 `adb reverse` 연결을 확인하세요. 러너는 앱 데이터를 초기화합니다.
+
+## iOS 네이티브 E2E
+
+전체 Xcode, 시뮬레이터, CocoaPods와 Maestro가 설치된 Mac에서 실행합니다. Command Line Tools만으로는 실행할 수 없습니다.
+
+```sh
+npm run test:e2e:ios
+```
+
+Maestro는 실제 앱의 네이티브 요소를 조작합니다. iOS 키체인은 앱 데이터 초기화와 별개입니다. E2E 전용 빌드는 cold start마다 테스트 로그인 정보를 지우므로 개인 시뮬레이터의 키체인 전체를 초기화하지 않습니다. 운영 빌드에서는 이 테스트 동작이 제외됩니다.
+
+## 테스트 시나리오
+
+| 구간      | 검증                                                              |
+| --------- | ----------------------------------------------------------------- |
+| 아카이브  | 목록 → 독립 상세 → 테이스팅 노트, 검색 빈 결과, API 오류와 재시도 |
+| 인증      | 보호 화면, 정상 로그인, 잘못된 로그인, 토큰 갱신·403·서버 장애    |
+| 장바구니  | 상품 → 담기 → 수량 변경과 서버 견적 → 주문서, 입력 전 결제 차단   |
+| 게시판    | 네이티브 입력 → 글 등록 → 상세 → 댓글 등록                        |
+| 문의      | 문의 생성 → 추가 메시지 → 대화 표시                               |
+| 콜백      | 외부·위조 NICE·결제 결과 거부, 주문번호·금액·origin 검증          |
+| 화면 구성 | 상품·이용권·스마트오더·브랜드·소개·약관 라우트                    |
+
+`e2e/maestro`의 6개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
+
+## CI
+
+`.github/workflows/mobile-ci.yml`은 Git 저장소에 연결된 뒤 PR/main push에서 실행됩니다.
+
+- quality: 설치, 린트, TypeScript, 단위·계약, Expo Doctor, 웹 번들, Playwright.
+- android-e2e: Linux KVM 에뮬레이터, E2E release APK 빌드, Maestro.
+
+서명키·Expo 계정·운영 비밀 없이 실행하는 합성 회귀 파이프라인입니다. 배포용 AAB/IPA 서명·스토어 제출은 별도 단계입니다. iOS는 로컬 러너를 제공하며 Mac CI 비용을 피하도록 기본 CI에서는 실행하지 않습니다. GitHub에 push하거나 workflow를 원격 실행한 상태는 아닙니다.
+
+실패 결과는 `artifacts/`에 보관하고 Git에서는 제외합니다. CI 업로드 대상은 합성 테스트 결과뿐입니다. 실제 사용자 정보로 이 테스트를 실행하거나 trace/스크린샷을 공유하지 마세요.
+
+## 별도 실서비스 QA가 필요한 범위
+
+NICE 통신사·인증 앱 복귀, 토스·카드사 앱 전환/승인, 실제 API의 사업자 권한·멤버십, 업로드, 실기기 키보드/뒤로가기, 앱 재시작 중 결제 복구는 제공자 sandbox·전용 계정·기기에서 별도로 확인해야 합니다.
+
+필요 도구를 한 번에 확인하려면 `npm run test:e2e:doctor -- android` 또는 `npm run test:e2e:doctor -- ios`를 실행하세요.
+
+운영 빌드에는 fixture 계정·주소가 포함되지 않는지 `build:web`/`build:bundles` 마지막 단계에서 자동 검사합니다. E2E 후 일반 네이티브 앱을 실행하려면 `npx expo prebuild --platform android` 또는 `--platform ios`로 일반 앱 설정을 다시 생성하세요.
+
+공식 문서: [Maestro 설치](https://docs.maestro.dev/maestro-cli/how-to-install-maestro-cli), [Expo 로컬 빌드](https://docs.expo.dev/guides/local-app-production/).
+
+이전 검증에서 발생한 캐시 혼선·운영 요청과 미정리 장바구니는 [마이그레이션 상태](../MIGRATION.md#테스트-격리와-운영-요청)에 기록했습니다. 현재 러너는 외부 origin을 전송 전에 차단합니다.
+
+## 디자인 비교와 화면 회귀
+
+웹을 3100 포트에서 실행한 뒤 `npm run web:compare`를 실행하면 RN이 웹과 같은 공개 API 주소로 8082 포트에 열린다. `npm run design:compare`는 두 서버의 모바일 화면과 비교 HTML을 `artifacts/design-sync`에 저장한다. 이 명령은 조회 전용이며 로그인·주문·저장을 실행하지 않는다. RN 웹 미리보기이므로 실제 기기의 텍스트·탭·키보드·제스처 검증을 대신하지 않는다.
+
+`npm run test:e2e:web`에는 아카이브·로그인·소개 스크린샷 비교와 320px·430px 필터 시트 검사가 포함된다. 스크린샷은 `e2e/web/__screenshots__`의 공통 기준을 사용하며 작은 글꼴 렌더링 차이만 허용한다. 기준을 바꾸려면 실제 화면을 검토한 뒤 `npm run test:e2e:web -- --update-snapshots`를 사용한다. CI에서는 갱신하지 않는다. Linux CI의 실제 실행은 아직 확인하지 않았으며 실패 시 diff를 검토해야 한다.

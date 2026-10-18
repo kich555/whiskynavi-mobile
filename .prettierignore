@@ -1,0 +1,9 @@
+node_modules
+.expo
+.e2e-dist
+dist
+artifacts
+.migration-backup
+src/apis/generated
+android
+ios

@@ -1,0 +1,15 @@
+appId: ${APP_ID}
+---
+- openLink: whiskynavi-e2e://sign-in
+- tapOn:
+    id: field-email
+- inputText: rn@example.test
+- tapOn:
+    id: field-password
+- inputText: mobile-e2e-123
+- hideKeyboard
+- tapOn:
+    id: action-sign-in
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 15000

@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+name: Guest product detail and cart
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- openLink: whiskynavi-e2e://general-items/1
+- extendedWaitUntil:
+    visible: 위스키 테이스팅 글라스
+    timeout: 15000
+- scrollUntilVisible:
+    element: 장바구니 담기
+    direction: DOWN
+- tapOn: 장바구니 담기
+- assertVisible: 장바구니
+- assertVisible: 위스키 테이스팅 글라스
+- scrollUntilVisible:
+    element: 주문서 작성
+    direction: DOWN
+- tapOn: 주문서 작성
+- assertVisible: 배송 주문서
+- takeScreenshot: artifacts/checkout
