@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "whiskynavi-mobile",
-    "slug": "whiskynavi-mobile",
+    "slug": "whiskynavi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -39,6 +39,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5a3fcce4-fd47-4b15-ab7a-8f03783c711f"
+      }
+    },
+    "owner": "whiskynavi"
   }
 }

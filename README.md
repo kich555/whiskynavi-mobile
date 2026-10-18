@@ -16,6 +16,18 @@ Xcode가 설치된 Mac의 iOS 시뮬레이터는 `npm run ios`, Android SDK와 �
 
 공개 설정은 [.env.example](.env.example)을 참고하세요. 기본 API는 `https://api.whiskynavi.com`입니다. 비밀번호·토큰·서버 비밀을 EXPO_PUBLIC 환경변수에 넣지 않습니다. 원래 웹 프로젝트의 .env는 복사하지 않았습니다.
 
+## Expo Go와 EAS 프로젝트 연결
+
+현재 EAS 프로젝트는 [@whiskynavi/whiskynavi](https://expo.dev/accounts/whiskynavi/projects/whiskynavi)이며 프로젝트 ID는 `5a3fcce4-fd47-4b15-ab7a-8f03783c711f`입니다. `app.config.ts`가 최종 설정을 결정하므로 EAS의 프로젝트 slug와 같은 `whiskynavi`를 사용합니다. Git 저장소·폴더 이름은 `whiskynavi-mobile`을 유지합니다.
+
+```sh
+npm start -- --go
+```
+
+휴대폰과 Mac을 같은 Wi-Fi에 연결하고 Expo Go로 터미널의 QR을 스캔하세요. Expo Go 로컬 실행에는 EAS 클라우드 빌드나 스토어 서명이 필요하지 않습니다. 연결 확인은 `npx eas-cli@25.2.0 project:info`로 할 수 있습니다. 이 프로젝트의 SDK는 57입니다.
+
+동적 설정을 사용하는 프로젝트에서 EAS가 slug를 자동 수정하지 못하면 `app.config.ts`와 `app.json`의 slug가 EAS 프로젝트와 일치하는지 확인하세요. `app.json`의 `extra.eas.projectId`와 `owner`도 최종 공개 설정에 유지돼야 합니다.
+
 ## 설치·시작 오류가 발생할 때
 
 실행 중인 개발 서버를 `Ctrl+C`로 종료한 뒤 이 프로젝트 폴더에서 `npm ci`를 완료하고 `npm start`를 실행하세요. 이미 다른 창에서 같은 앱이 실행 중이면 Expo가 다른 포트를 사용할지 안내합니다.

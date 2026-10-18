@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
     name: e2e ? "WhiskyNavi E2E" : "WhiskyNavi",
-    slug: "whiskynavi-mobile",
+    slug: "whiskynavi",
     icon: "./assets/images/brand-icon.png",
     scheme: e2e ? "whiskynavi-e2e" : "whiskynavimobile",
     ios: {
