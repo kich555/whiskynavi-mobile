@@ -1,0 +1,210 @@
+{
+  "baseline": "b0d740939d9c37d6ba20b58a55ebcd08e7bcdc4d",
+  "tracker": "local-markdown",
+  "status": "ready-for-agent",
+  "levels": {
+    "high": 4,
+    "medium": 7,
+    "low": 2
+  },
+  "specs": [
+    {
+      "id": "S01",
+      "file": "specs/01-accessible-navigation-and-reading.md"
+    },
+    {
+      "id": "S02",
+      "file": "specs/02-discovery-feedback-and-control.md"
+    },
+    {
+      "id": "S03",
+      "file": "specs/03-startup-consistency-and-native-evidence.md"
+    }
+  ],
+  "findings": [
+    {
+      "id": "H01",
+      "level": "high",
+      "ticket": "01",
+      "spec": "S01"
+    },
+    {
+      "id": "H02",
+      "level": "high",
+      "ticket": "02",
+      "spec": "S01"
+    },
+    {
+      "id": "H03",
+      "level": "high",
+      "ticket": "03",
+      "spec": "S01"
+    },
+    {
+      "id": "H04",
+      "level": "high",
+      "ticket": "04",
+      "spec": "S01"
+    },
+    {
+      "id": "M01",
+      "level": "medium",
+      "ticket": "05",
+      "spec": "S01"
+    },
+    {
+      "id": "M02",
+      "level": "medium",
+      "ticket": "06",
+      "spec": "S02"
+    },
+    {
+      "id": "M03",
+      "level": "medium",
+      "ticket": "07",
+      "spec": "S03"
+    },
+    {
+      "id": "M04",
+      "level": "medium",
+      "ticket": "08",
+      "spec": "S02"
+    },
+    {
+      "id": "M05",
+      "level": "medium",
+      "ticket": "09",
+      "spec": "S02"
+    },
+    {
+      "id": "M06",
+      "level": "medium",
+      "ticket": "10",
+      "spec": "S02"
+    },
+    {
+      "id": "M07",
+      "level": "medium",
+      "ticket": "13",
+      "spec": "S03"
+    },
+    {
+      "id": "L01",
+      "level": "low",
+      "ticket": "11",
+      "spec": "S02"
+    },
+    {
+      "id": "L02",
+      "level": "low",
+      "ticket": "12",
+      "spec": "S03"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "01",
+      "file": "issues/01-menu-activation.md",
+      "priority": "high",
+      "finding": "H01",
+      "spec": "S01",
+      "blocked_by": []
+    },
+    {
+      "id": "02",
+      "file": "issues/02-sheet-accessibility.md",
+      "priority": "high",
+      "finding": "H02",
+      "spec": "S01",
+      "blocked_by": []
+    },
+    {
+      "id": "03",
+      "file": "issues/03-touch-targets.md",
+      "priority": "high",
+      "finding": "H03",
+      "spec": "S01",
+      "blocked_by": []
+    },
+    {
+      "id": "04",
+      "file": "issues/04-commerce-contrast.md",
+      "priority": "high",
+      "finding": "H04",
+      "spec": "S01",
+      "blocked_by": []
+    },
+    {
+      "id": "05",
+      "file": "issues/05-large-text.md",
+      "priority": "medium",
+      "finding": "M01",
+      "spec": "S01",
+      "blocked_by": []
+    },
+    {
+      "id": "06",
+      "file": "issues/06-carousel-control.md",
+      "priority": "medium",
+      "finding": "M02",
+      "spec": "S02",
+      "blocked_by": []
+    },
+    {
+      "id": "07",
+      "file": "issues/07-startup-fonts.md",
+      "priority": "medium",
+      "finding": "M03",
+      "spec": "S03",
+      "blocked_by": []
+    },
+    {
+      "id": "08",
+      "file": "issues/08-home-partial-failure.md",
+      "priority": "medium",
+      "finding": "M04",
+      "spec": "S02",
+      "blocked_by": []
+    },
+    {
+      "id": "09",
+      "file": "issues/09-auth-feedback.md",
+      "priority": "medium",
+      "finding": "M05",
+      "spec": "S02",
+      "blocked_by": []
+    },
+    {
+      "id": "10",
+      "file": "issues/10-gallery-controls.md",
+      "priority": "medium",
+      "finding": "M06",
+      "spec": "S02",
+      "blocked_by": []
+    },
+    {
+      "id": "11",
+      "file": "issues/11-navigation-feedback.md",
+      "priority": "low",
+      "finding": "L01",
+      "spec": "S02",
+      "blocked_by": []
+    },
+    {
+      "id": "12",
+      "file": "issues/12-archive-consistency.md",
+      "priority": "low",
+      "finding": "L02",
+      "spec": "S03",
+      "blocked_by": []
+    },
+    {
+      "id": "13",
+      "file": "issues/13-native-verification.md",
+      "priority": "medium",
+      "finding": "M07",
+      "spec": "S03",
+      "blocked_by": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "baseline": "b0d740939d9c37d6ba20b58a55ebcd08e7bcdc4d",
+  "date": "2026-10-18",
+  "runtime": "RN web preview; native unverified",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measured": {
+    "menu": {
+      "width": 40,
+      "height": 44
+    },
+    "series_chip": {
+      "width": 97.03125,
+      "height": 36.5
+    },
+    "white_on_amber_contrast": 3.1858,
+    "white_on_green_contrast": 4.2521,
+    "muted_on_background_contrast": 6.1884,
+    "ttf_total_bytes": 18329980
+  },
+  "observed": ["Keyboard Enter on current archive menu item leaves menu open"],
+  "not_run": ["VoiceOver", "TalkBack", "native E2E", "cold-start measurements"],
+  "prior_evidence": "21 Playwright tests; 102 unit tests; 8 paired screenshots at baseline; not rerun as part of this review"
+}
