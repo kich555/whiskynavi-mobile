@@ -1,7 +1,14 @@
 import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { PageHero } from "@/components/native/brand";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react-native";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  ShoppingBag,
+  ShoppingCart,
+  MapPin,
+  Ticket,
+} from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
@@ -182,144 +189,120 @@ export function CatalogScreen({
           </View>
         </View>
       }
-      renderItem={(product) =>
-        channel === "smart" ? (
-          <SurfaceLink
-            href={`${paths[channel]}/${product.id}`}
-            testID={`product-card-${product.id}`}
-            style={{
-              borderWidth: 1,
-              borderColor: colors.line,
-              borderRadius: 12,
-              overflow: "hidden",
-              backgroundColor: "#ffffff0d",
-            }}
+      renderItem={(product) => (
+        <SurfaceLink
+          href={`${paths[channel]}/${product.id}`}
+          testID={`product-card-${product.id}`}
+          accessibilityLabel={`${product.name} 상세보기`}
+          style={commerceStyles.listCard}
+        >
+          <View
+            testID={`product-image-${product.id}`}
+            style={commerceStyles.thumbnail}
           >
+            <Photo
+              uri={product.imageUrl}
+              label={product.name ?? "상품"}
+              backgroundColor="transparent"
+            />
+          </View>
+          <View style={commerceStyles.cardBody}>
             <View
               style={{
-                aspectRatio: 1,
-                backgroundColor: "#ffffff08",
-                justifyContent: "center",
+                flexDirection: "row",
                 alignItems: "center",
+                gap: 6,
+                flexWrap: "wrap",
               }}
             >
-              {product.imageUrl ? (
-                <Photo uri={product.imageUrl} label={product.name ?? "상품"} />
-              ) : (
-                <Label muted>상품 이미지 준비 중</Label>
-              )}
-            </View>
-            <View style={{ padding: 20, gap: 16 }}>
-              <Text style={[styles.text, { color: "#fcd34d", fontSize: 12 }]}>
-                {canOrder(product)
-                  ? "매장 픽업"
-                  : product.saleStatus === "SOLD_OUT"
-                    ? "품절"
-                    : "판매 기간 확인"}
-              </Text>
-              <Heading>{product.name}</Heading>
-              <Text style={[styles.heading, { fontSize: 20 }]}>
-                {money(product.salePrice)}
-              </Text>
-            </View>
-          </SurfaceLink>
-        ) : (
-          <View
-            testID={`product-card-${product.id}`}
-            style={commerceStyles.card}
-          >
-            <View
-              style={[
-                commerceStyles.image,
-                { padding: product.imageUrl ? 16 : 0 },
-              ]}
-            >
-              <Photo
-                uri={product.imageUrl}
-                label={product.name ?? "상품"}
-                backgroundColor="transparent"
+              <SaleBadge
+                available={canOrder(product)}
+                label={
+                  canOrder(product)
+                    ? "판매중"
+                    : (product.availableQuantity ?? 0) < 1 ||
+                        product.saleStatus === "SOLD_OUT"
+                      ? "품절"
+                      : product.saleStatus === "CLOSED"
+                        ? "판매 종료"
+                        : "판매 대기"
+                }
               />
+              {channel !== "general" ? (
+                <Text style={commerceStyles.meta}>
+                  {channel === "smart" ? "매장 픽업" : "이용권"}
+                </Text>
+              ) : null}
             </View>
-            <View style={{ gap: 10 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  justifyContent: "space-between",
-                }}
-              >
-                {channel === "ticket" ? (
-                  <Text
-                    style={[styles.text, { fontSize: 12, color: "#fcd34d" }]}
-                  >
-                    이용권 · 배송 없음
-                  </Text>
-                ) : null}
-                <SaleBadge available={(product.availableQuantity ?? 0) > 0} />
-              </View>
-              <Text
-                style={[
-                  styles.heading,
-                  {
-                    fontSize: width >= 375 && fontScale <= 1.3 ? 16 : 20,
-                    lineHeight: width >= 375 && fontScale <= 1.3 ? 22 : 28,
-                  },
-                ]}
-              >
-                {product.name}
-              </Text>
-            </View>
+            <Text style={commerceStyles.cardName}>{product.name}</Text>
+            <Text style={commerceStyles.cardPrice}>
+              {money(product.salePrice)}
+            </Text>
             <View
               style={{
-                borderTopWidth: 1,
-                borderTopColor: colors.line,
-                paddingTop: 16,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
                 gap: 8,
               }}
             >
-              <Text style={[styles.heading, { fontSize: 20 }]}>
-                {money(product.salePrice)}
+              <Text style={[commerceStyles.meta, { flex: 1 }]}>
+                {product.availableQuantity ?? 0}개 남음
               </Text>
-              <Label muted>
-                {product.availableQuantity ?? 0} / {product.totalQuantity ?? 0}
-                개 남음
-              </Label>
-            </View>
-            {(product.availableQuantity ?? 0) > 0 ? (
-              <SurfaceLink
-                href={`${paths[channel]}/${product.id}`}
-                accessibilityLabel={`${product.name} 상세보기`}
-                style={commerceStyles.detailLink}
-              >
-                <Text style={styles.text}>상세보기</Text>
-              </SurfaceLink>
-            ) : (
               <View
-                style={[
-                  commerceStyles.detailLink,
-                  {
-                    backgroundColor: "transparent",
-                    borderWidth: 1,
-                    borderColor: colors.line,
-                  },
-                ]}
+                style={{ flexDirection: "row", gap: 3, alignItems: "center" }}
               >
-                <Label muted>주문 불가</Label>
+                <Text style={commerceStyles.meta}>상세보기</Text>
+                <ArrowUpRight
+                  size={14}
+                  color={colors.muted}
+                  aria-hidden
+                  accessibilityElementsHidden
+                />
               </View>
-            )}
+            </View>
           </View>
-        )
-      }
+        </SurfaceLink>
+      )}
     />
   );
 }
 const commerceStyles = StyleSheet.create({
+  listCard: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+    borderCurve: "continuous",
+    overflow: "hidden",
+    backgroundColor: colors.surface,
+  },
+  thumbnail: { aspectRatio: 1, padding: 8, backgroundColor: "#ffffff08" },
+  cardBody: { padding: 12, gap: 8 },
+  cardName: {
+    fontFamily: "NaviSansMedium",
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  cardPrice: {
+    fontFamily: "NaviSansBold",
+    color: colors.text,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  meta: {
+    fontFamily: "NaviSans",
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   card: {
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 20,
-    gap: 20,
+    padding: 16,
+    gap: 12,
+    borderRadius: 16,
+    borderCurve: "continuous",
     backgroundColor: "#ffffff0d",
     marginBottom: 8,
   },
@@ -336,8 +319,8 @@ const commerceStyles = StyleSheet.create({
   order: {
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingTop: 24,
-    gap: 16,
+    paddingTop: 16,
+    gap: 12,
   },
   notice: {
     borderWidth: 1,
@@ -347,7 +330,13 @@ const commerceStyles = StyleSheet.create({
     borderRadius: 12,
   },
 });
-function SaleBadge({ available }: { available: boolean }) {
+function SaleBadge({
+  available,
+  label,
+}: {
+  available: boolean;
+  label?: string;
+}) {
   return (
     <View
       style={{
@@ -366,7 +355,7 @@ function SaleBadge({ available }: { available: boolean }) {
           color: colors.text,
         }}
       >
-        {available ? "판매중" : "품절"}
+        {label ?? (available ? "판매중" : "품절")}
       </Text>
     </View>
   );
@@ -377,6 +366,7 @@ export function ProductScreen({ channel }: { channel: Channel }) {
     productId?: string;
   }>();
   const id = Number(params.saleId ?? params.productId);
+  const { width, fontScale } = useWindowDimensions();
   const [quantity, setQuantity] = useState(1);
   const [optionId, setOptionId] = useState<number>();
   const [optionSheet, setOptionSheet] = useState(false);
@@ -421,7 +411,13 @@ export function ProductScreen({ channel }: { channel: Channel }) {
             style={[
               commerceStyles.image,
               {
-                padding: (selected?.imageUrl ?? product.imageUrl) ? 24 : 0,
+                padding: (selected?.imageUrl ?? product.imageUrl) ? 12 : 0,
+                maxWidth: 440,
+                width: "100%",
+                alignSelf: "center",
+                borderRadius: 20,
+                borderCurve: "continuous",
+                overflow: "hidden",
                 borderWidth: 1,
                 borderColor: colors.line,
               },
@@ -437,7 +433,10 @@ export function ProductScreen({ channel }: { channel: Channel }) {
             <View style={commerceStyles.productHeading}>
               <Text
                 accessibilityRole="header"
-                style={[styles.title, { flex: 1, lineHeight: 32 }]}
+                style={[
+                  styles.title,
+                  { flex: 1, fontSize: 22, lineHeight: 30 },
+                ]}
               >
                 {product.name}
               </Text>
@@ -501,40 +500,82 @@ export function ProductScreen({ channel }: { channel: Channel }) {
                   </Sheet>
                 </>
               ) : null}
-              <Quantity value={quantity} onChange={setQuantity} max={limit} />
-              {channel === "general" ? (
-                <Action
-                  title="장바구니 담기"
-                  disabled={!permitted || task.pending}
-                  onPress={() =>
-                    void task.run(async () => {
-                      await getOrCreate();
-                      await postApiV2CartsItemsBatch({
-                        items: [{ generalProductId: id, quantity, optionId }],
-                      });
-                      await client.invalidateQueries({ queryKey: ["cart"] });
-                      router.push("/general-items/cart");
-                    })
-                  }
-                />
-              ) : null}
-              <Action
-                title={
-                  permitted
-                    ? channel === "smart"
-                      ? "픽업 주문하기"
-                      : "바로 주문하기"
-                    : "현재 주문할 수 없습니다"
-                }
-                disabled={!permitted}
-                onPress={() =>
-                  router.push(
-                    (channel === "smart"
-                      ? `/smart-order/${id}/order?quantity=${quantity}`
-                      : `${channel === "ticket" ? "/ticket-products/order" : "/general-items/delivery-order"}?saleId=${id}&quantity=${quantity}${optionId ? `&optionId=${optionId}` : ""}`) as never,
-                  )
-                }
-              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Label muted>구매 수량</Label>
+                <Quantity value={quantity} onChange={setQuantity} max={limit} />
+              </View>
+              <View
+                testID="purchase-actions"
+                style={{
+                  flexDirection:
+                    width >= 375 && fontScale <= 1.3 ? "row" : "column",
+                  gap: 8,
+                  alignItems: "stretch",
+                }}
+              >
+                {channel === "general" ? (
+                  <View style={{ flex: 1 }}>
+                    <Action
+                      size="compact"
+                      secondary
+                      leading={<ShoppingCart size={18} color={colors.text} />}
+                      title="장바구니 담기"
+                      disabled={!permitted || task.pending}
+                      onPress={() =>
+                        void task.run(async () => {
+                          await getOrCreate();
+                          await postApiV2CartsItemsBatch({
+                            items: [
+                              { generalProductId: id, quantity, optionId },
+                            ],
+                          });
+                          await client.invalidateQueries({
+                            queryKey: ["cart"],
+                          });
+                          router.push("/general-items/cart");
+                        })
+                      }
+                    />
+                  </View>
+                ) : null}
+                <View style={{ flex: 1 }}>
+                  <Action
+                    size="compact"
+                    leading={
+                      channel === "smart" ? (
+                        <MapPin size={18} color={colors.background} />
+                      ) : channel === "ticket" ? (
+                        <Ticket size={18} color={colors.background} />
+                      ) : (
+                        <ShoppingBag size={18} color={colors.background} />
+                      )
+                    }
+                    title={
+                      permitted
+                        ? channel === "smart"
+                          ? "픽업 주문하기"
+                          : "바로 주문하기"
+                        : "현재 주문할 수 없습니다"
+                    }
+                    disabled={!permitted || task.pending}
+                    onPress={() =>
+                      router.push(
+                        (channel === "smart"
+                          ? `/smart-order/${id}/order?quantity=${quantity}`
+                          : `${channel === "ticket" ? "/ticket-products/order" : "/general-items/delivery-order"}?saleId=${id}&quantity=${quantity}${optionId ? `&optionId=${optionId}` : ""}`) as never,
+                      )
+                    }
+                  />
+                </View>
+              </View>
             </View>
             <View style={commerceStyles.order}>
               <Heading>{product.name}</Heading>

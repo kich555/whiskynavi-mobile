@@ -101,6 +101,7 @@ test("paired reservation and board visual audit with isolated web source", async
           "위스키를 함께 알아가는 공간입니다.",
         ],
         ["news-list", "/board/news", "첫 번째 위스키 이야기"],
+        ["account-overview", "/my-page", "마이페이지"],
         ["catalog-list", "/general-items", "위스키 테이스팅 글라스"],
         ["catalog-detail", "/general-items/1", "위스키 테이스팅 글라스"],
         ["ticket-list", "/ticket-products", "위스키 테이스팅 이용권"],
@@ -147,6 +148,14 @@ test("paired reservation and board visual audit with isolated web source", async
           const shopFilename = `rn-shop-${width}.png`;
           await page.screenshot({ path: `${directory}/${shopFilename}` });
           captures.push(shopFilename);
+        }
+        if (target === "rn" && name === "catalog-detail") {
+          await page
+            .getByRole("button", { name: "장바구니 담기", exact: true })
+            .scrollIntoViewIfNeeded();
+          const actionFilename = `rn-purchase-actions-${width}.png`;
+          await page.screenshot({ path: `${directory}/${actionFilename}` });
+          captures.push(actionFilename);
         }
         if (name === "reservation-detail") {
           await page

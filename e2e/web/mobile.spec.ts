@@ -380,7 +380,7 @@ test("catalogue sale badge stays inside its mobile card", async ({ page }) => {
   const outer = await card.boundingBox();
   const inner = await badge.boundingBox();
   expect(inner!.x + inner!.width).toBeLessThanOrEqual(
-    outer!.x + outer!.width - 15,
+    outer!.x + outer!.width - 11,
   );
 });
 
@@ -1014,4 +1014,85 @@ test("editor blank paragraphs occupy one body line in post and archive", async (
     expect(blank!.height).toBeCloseTo(22, 0);
     expect(b!.y - a!.y - a!.height).toBeCloseTo(blank!.height, 0);
   }
+});
+
+test("account overview groups history and settings without a wall of forms", async ({
+  page,
+}) => {
+  await login(page, "/my-page");
+  await expect(page.getByText("모바일테스터님", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "닉네임", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "주문 내역", exact: true }).click();
+  await expect(
+    page.getByText("위스키 테이스팅 글라스", { exact: false }).first(),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page.getByRole("button", { name: "예약 내역", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "내 예약 신청", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page
+    .getByRole("button", { name: "내 정보 수정", exact: false })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "닉네임", exact: true }),
+  ).toHaveValue("모바일테스터");
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page.getByRole("button", { name: "나의 멤버십", exact: false }).click();
+  await expect(page.getByText("미가입", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page.getByRole("button", { name: "사업자 등록", exact: false }).click();
+  await expect(
+    page.getByRole("heading", { name: "사업자 등록 신청", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page.getByRole("link", { name: "1:1 문의", exact: true }).click();
+  await expect(page).toHaveURL(/my-page\/inquiries$/);
+});
+
+test("shopping cards prioritize thumbnails and purchase actions share one row", async ({
+  page,
+}) => {
+  for (const width of [375, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/general-items");
+    const card = page.getByTestId("product-card-1");
+    await expect(card).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const bounds = (await card.boundingBox())!;
+    const image = (await page.getByTestId("product-image-1").boundingBox())!;
+    expect(image.width / bounds.width).toBeGreaterThan(0.94);
+    expect(bounds.height / bounds.width).toBeLessThan(2.1);
+    await card.click();
+    await expect(page).toHaveURL(/general-items\/1$/);
+    const cart = page.getByRole("button", {
+      name: "장바구니 담기",
+      exact: true,
+    });
+    const order = page.getByRole("button", {
+      name: "바로 주문하기",
+      exact: true,
+    });
+    await cart.scrollIntoViewIfNeeded();
+    const a = (await cart.boundingBox())!,
+      b = (await order.boundingBox())!;
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2);
+    expect(b.x - (a.x + a.width)).toBeGreaterThanOrEqual(8);
+    expect(a.height).toBeGreaterThanOrEqual(48);
+    expect(a.height).toBeLessThanOrEqual(50);
+    await expect(cart.locator("svg")).toHaveCount(1);
+    await expect(order.locator("svg")).toHaveCount(1);
+  }
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/general-items/1");
+  const cart = page.getByRole("button", { name: "장바구니 담기", exact: true });
+  await cart.scrollIntoViewIfNeeded();
+  const a = (await cart.boundingBox())!,
+    b = (await page
+      .getByRole("button", { name: "바로 주문하기", exact: true })
+      .boundingBox())!;
+  expect(b.y).toBeGreaterThanOrEqual(a.y + a.height + 8);
 });

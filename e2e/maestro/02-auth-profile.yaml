@@ -9,3 +9,7 @@ name: Credentials login and native account screen
 - assertVisible: 모바일테스터님
 - assertVisible: rn@example.test
 - takeScreenshot: artifacts/account
+
+- tapOn: 내 정보 수정.*
+- assertVisible: 닉네임
+- takeScreenshot: artifacts/account-profile

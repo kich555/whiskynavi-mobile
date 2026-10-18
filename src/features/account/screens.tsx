@@ -3,8 +3,15 @@ import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, router } from "expo-router";
-import { useState } from "react";
-import { Platform, View } from "react-native";
+import { useState, type ReactNode } from "react";
+import {
+  Platform,
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 import {
   getApiUsersMe,
   putApiUsersMeNickname,
@@ -28,6 +35,9 @@ import {
 import { customFetch } from "@/apis/mutator";
 import {
   Action,
+  FilterChip,
+  SurfaceLink,
+  colors,
   Field,
   Heading,
   Label,
@@ -43,6 +53,19 @@ import {
   styles,
   useTask,
 } from "@/components/native/ui";
+import {
+  UserRound,
+  Package,
+  CalendarDays,
+  Crown,
+  Building2,
+  CircleHelp,
+  ChevronRight,
+  MessageCircle,
+  Ticket,
+  Pencil,
+  LogOut,
+} from "lucide-react-native";
 import { Editor } from "@/components/native/editor";
 import { RichContent } from "@/components/native/rich-content";
 import { useSession } from "@/lib/providers";
@@ -60,7 +83,7 @@ export function MyPageScreen() {
 }
 function MyPage() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const [selected, setSelected] = useState(tab ?? "profile");
+  const [selected, setSelected] = useState(tab ?? "overview");
   const query = useQuery({ queryKey: ["me"], queryFn: () => getApiUsersMe() });
   if (selected === "orders" || selected === "reservations")
     return (
@@ -75,15 +98,46 @@ function MyPage() {
       refresh={() => void query.refetch()}
       refreshing={query.isFetching}
     >
-      <AccountTabs value={selected} onChange={setSelected} />
+      {selected !== "overview" ? (
+        <AccountTabs value={selected} onChange={setSelected} />
+      ) : null}
       <Message error={query.error} />
       {query.isLoading ? <Loading /> : null}
       {query.data ? (
         <>
-          <Heading>
-            {query.data.data.username ?? query.data.data.name}님
-          </Heading>
-          <Label muted>{query.data.data.email}</Label>
+          <View style={accountStyles.identity}>
+            <View
+              style={accountStyles.avatar}
+              accessibilityElementsHidden
+              aria-hidden
+            >
+              <UserRound size={24} color={colors.text} />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Heading>
+                {query.data.data.username ?? query.data.data.name}님
+              </Heading>
+              <Text style={accountStyles.meta}>{query.data.data.email}</Text>
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                {(["navi", "tales"] as const)
+                  .filter((key) =>
+                    query.data!.data.roles?.includes(
+                      key === "navi"
+                        ? MEMBERSHIP_ROLE.NAVI
+                        : MEMBERSHIP_ROLE.TALES,
+                    ),
+                  )
+                  .map((key) => (
+                    <Text key={key} style={accountStyles.membership}>
+                      {MEMBERSHIP_INFO[key].name}
+                    </Text>
+                  ))}
+              </View>
+            </View>
+          </View>
+          {selected === "overview" ? (
+            <AccountOverview onChange={setSelected} />
+          ) : null}
           {selected === "profile" ? (
             <ProfileForm key={query.data.data.id} user={query.data.data} />
           ) : selected === "membership" ? (
@@ -110,7 +164,7 @@ function MyPage() {
             </>
           ) : selected === "business" ? (
             <BusinessSection />
-          ) : (
+          ) : selected === "faq" ? (
             <>
               {FAQ_DATA.map((faq) => (
                 <View key={faq.question} style={styles.section}>
@@ -120,12 +174,16 @@ function MyPage() {
               ))}
               <NavLink href="/my-page/inquiries">1:1 문의</NavLink>
             </>
-          )}
+          ) : null}
         </>
       ) : null}
-      <NavLink href="/my-page/ticket-orders">내 이용권 주문</NavLink>
+      {selected !== "overview" ? (
+        <NavLink href="/my-page/ticket-orders">내 이용권 주문</NavLink>
+      ) : null}
       <Action
         secondary
+        size="compact"
+        leading={<LogOut size={17} color={colors.text} />}
         title="로그아웃"
         onPress={() =>
           confirmAction("로그아웃", "이 기기에서 로그아웃하시겠습니까?", () => {
@@ -147,8 +205,14 @@ function AccountTabs({
   onChange: (value: string) => void;
 }) {
   return (
-    <View style={[styles.row, { padding: 12 }]}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0, flexShrink: 0 }}
+      contentContainerStyle={{ padding: 4, gap: 8 }}
+    >
       {Object.entries({
+        overview: "전체",
         profile: "내 정보",
         orders: "주문",
         reservations: "예약",
@@ -156,16 +220,246 @@ function AccountTabs({
         business: "사업자",
         faq: "도움말",
       }).map(([key, label]) => (
-        <Action
+        <FilterChip
           key={key}
-          secondary={value !== key}
-          title={label}
+          selected={value === key}
+          label={label}
           onPress={() => onChange(key)}
         />
       ))}
+    </ScrollView>
+  );
+}
+function AccountOverview({ onChange }: { onChange: (value: string) => void }) {
+  return (
+    <View style={{ gap: 24 }}>
+      <View style={{ gap: 12 }}>
+        <Heading>나의 이용 내역</Heading>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <AccountShortcut
+            label="주문 내역"
+            icon={<Package size={23} color={colors.text} />}
+            onPress={() => onChange("orders")}
+          />
+          <AccountShortcut
+            label="예약 내역"
+            icon={<CalendarDays size={23} color={colors.text} />}
+            onPress={() => onChange("reservations")}
+          />
+          <SurfaceLink
+            href="/my-page/ticket-orders"
+            style={accountStyles.shortcut}
+            accessibilityLabel="내 이용권 주문"
+          >
+            <Ticket
+              size={23}
+              color={colors.text}
+              aria-hidden
+              accessibilityElementsHidden
+            />
+            <Text style={accountStyles.rowLabel}>이용권 주문</Text>
+          </SurfaceLink>
+        </View>
+      </View>
+      <View style={{ gap: 12 }}>
+        <Heading>계정 관리</Heading>
+        <View style={accountStyles.group}>
+          <AccountRow
+            label="내 정보 수정"
+            detail="닉네임 · 이메일 · 비밀번호"
+            icon={<Pencil size={19} color={colors.muted} />}
+            onPress={() => onChange("profile")}
+          />
+          <AccountRow
+            label="나의 멤버십"
+            detail="NAVI · TALES"
+            icon={<Crown size={19} color={colors.muted} />}
+            onPress={() => onChange("membership")}
+          />
+          <AccountRow
+            label="사업자 등록"
+            detail="신청 및 진행 현황"
+            icon={<Building2 size={19} color={colors.muted} />}
+            onPress={() => onChange("business")}
+          />
+        </View>
+      </View>
+      <View style={{ gap: 12 }}>
+        <Heading>고객 지원</Heading>
+        <View style={accountStyles.group}>
+          <AccountRow
+            label="자주 묻는 질문"
+            icon={<CircleHelp size={19} color={colors.muted} />}
+            onPress={() => onChange("faq")}
+          />
+          <SurfaceLink
+            href="/my-page/inquiries"
+            style={accountStyles.row}
+            accessibilityLabel="1:1 문의"
+          >
+            <MessageCircle
+              size={19}
+              color={colors.muted}
+              aria-hidden
+              accessibilityElementsHidden
+            />
+            <Text style={[accountStyles.rowLabel, { flex: 1 }]}>1:1 문의</Text>
+            <ChevronRight
+              size={17}
+              color={colors.muted}
+              aria-hidden
+              accessibilityElementsHidden
+            />
+          </SurfaceLink>
+        </View>
+      </View>
     </View>
   );
 }
+function AccountShortcut({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string;
+  icon: ReactNode;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        accountStyles.shortcut,
+        { opacity: pressed ? 0.65 : 1 },
+      ]}
+    >
+      <View
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {icon}
+      </View>
+      <Text style={accountStyles.rowLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+function AccountRow({
+  label,
+  detail,
+  icon,
+  onPress,
+}: {
+  label: string;
+  detail?: string;
+  icon: ReactNode;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        accountStyles.row,
+        { backgroundColor: pressed ? colors.line : "transparent" },
+      ]}
+    >
+      <View
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {icon}
+      </View>
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={accountStyles.rowLabel}>{label}</Text>
+        {detail ? <Text style={accountStyles.meta}>{detail}</Text> : null}
+      </View>
+      <ChevronRight
+        size={17}
+        color={colors.muted}
+        aria-hidden
+        accessibilityElementsHidden
+      />
+    </Pressable>
+  );
+}
+const accountStyles = StyleSheet.create({
+  identity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 20,
+    borderCurve: "continuous",
+    backgroundColor: colors.surface,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    borderCurve: "continuous",
+    backgroundColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  membership: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.text,
+    backgroundColor: colors.line,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  meta: {
+    fontFamily: "NaviSans",
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.muted,
+  },
+  rowLabel: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.text,
+  },
+  shortcut: {
+    flex: 1,
+    minHeight: 92,
+    padding: 12,
+    gap: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+    borderCurve: "continuous",
+  },
+  group: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+    borderCurve: "continuous",
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: 60,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+});
+
 function ProfileForm({ user }: { user: UserSelfResponse }) {
   const [nickname, setNickname] = useState(user.username ?? "");
   const [email, setEmail] = useState(user.email ?? "");

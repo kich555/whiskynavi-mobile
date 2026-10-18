@@ -167,12 +167,16 @@ export function Action({
   disabled,
   accessibilityLabel,
   secondary = false,
+  leading,
+  size = "regular",
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   accessibilityLabel?: string;
   secondary?: boolean;
+  leading?: ReactNode;
+  size?: "regular" | "compact";
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -187,6 +191,14 @@ export function Action({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        size === "compact"
+          ? {
+              minHeight: 48,
+              paddingHorizontal: 10,
+              paddingVertical: 10,
+              borderRadius: 12,
+            }
+          : null,
         secondary
           ? {
               backgroundColor: pressed ? "#ffffff16" : material.fill,
@@ -206,11 +218,40 @@ export function Action({
         }
         style={StyleSheet.absoluteFill}
       />
-      <Text
-        style={[styles.buttonText, secondary ? { color: colors.text } : null]}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
       >
-        {title}
-      </Text>
+        {leading ? (
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            aria-hidden
+          >
+            {leading}
+          </View>
+        ) : null}
+        <Text
+          style={[
+            styles.buttonText,
+            size === "compact"
+              ? {
+                  fontSize: 14,
+                  lineHeight: 22,
+                  flexShrink: 1,
+                  textAlign: "center",
+                }
+              : null,
+            secondary ? { color: colors.text } : null,
+          ]}
+        >
+          {title}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -752,6 +793,7 @@ export function Quantity({
   return (
     <View style={styles.row}>
       <Action
+        size="compact"
         title="−"
         accessibilityLabel="수량 줄이기"
         secondary
@@ -760,6 +802,7 @@ export function Quantity({
       />
       <Label>{value}개</Label>
       <Action
+        size="compact"
         title="+"
         accessibilityLabel="수량 늘리기"
         secondary
