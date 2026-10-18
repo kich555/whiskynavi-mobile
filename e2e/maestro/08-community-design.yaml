@@ -1,0 +1,28 @@
+appId: ${APP_ID}
+name: Community density and original/comment separation
+---
+- runScript: helpers/reset.js
+- runScript: helpers/seed-feed.js
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
+- openLink: whiskynavi-e2e://board/community
+- extendedWaitUntil:
+    visible:
+      id: board-row-1
+    timeout: 15000
+- takeScreenshot: artifacts/community-list
+- tapOn:
+    id: board-row-1
+- extendedWaitUntil:
+    visible:
+      id: post-original
+    timeout: 15000
+- assertVisible: 위스키를 함께 알아가는 공간입니다.
+- scrollUntilVisible:
+    element:
+      id: comments-section
+    direction: DOWN
+- takeScreenshot: artifacts/community-comments

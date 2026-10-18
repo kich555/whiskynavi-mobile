@@ -10,8 +10,9 @@ name: Native reservation application
     visible: 싱글캐스크 예약
     timeout: 15000
 - scrollUntilVisible:
-    element: 테스트 픽업 매장.*
+    element: 픽업 업장 선택
     direction: DOWN
+- tapOn: 픽업 업장 선택
 - tapOn: 테스트 픽업 매장.*
 - scrollUntilVisible:
     element: 예약 신청

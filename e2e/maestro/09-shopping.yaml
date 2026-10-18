@@ -1,0 +1,18 @@
+appId: ${APP_ID}
+name: Shopping channels and mobile product detail
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- openLink: whiskynavi-e2e://shop
+- extendedWaitUntil:
+    visible:
+      id: product-card-1
+    timeout: 15000
+- tapOn: 이용권
+- assertVisible:
+    id: product-card-2
+- tapOn: 스마트오더
+- assertVisible:
+    id: product-card-3
+- takeScreenshot: artifacts/shopping-channels

@@ -1,7 +1,10 @@
+import { BoardTabs, type BoardTab } from "./board-tabs";
+import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams, type Href } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { MessageSquare, Eye, Search, Pin } from "lucide-react-native";
 import {
   getApiBoardsBoardid,
   postApiBoardsBoardidPostsPostidViews,
@@ -25,12 +28,15 @@ import {
 import {
   Action,
   Field,
+  FilterChip,
+  SurfaceLink,
+  colors,
   Heading,
   Label,
   Loading,
   Message,
   NavLink,
-  PagedList,
+  InfiniteList,
   RequireAuth,
   Screen,
   Sheet,
@@ -44,8 +50,8 @@ import { Editor } from "@/components/native/editor";
 import { useSession } from "@/lib/providers";
 import { plainText } from "@/lib/content";
 
-export function BoardScreen({ board }: { board: "community" | "news" }) {
-  const [page, setPage] = useState(0);
+export function BoardScreen({ board: initialBoard }: { board: BoardTab }) {
+  const [board, setBoard] = useState<BoardTab>(initialBoard);
   const [keyword, setKeyword] = useState("");
   const [search, setSearch] = useState("");
   const [postTypeCode, setPostTypeCode] = useState<string>();
@@ -54,9 +60,9 @@ export function BoardScreen({ board }: { board: "community" | "news" }) {
     queryKey: ["board", board],
     queryFn: () => getApiBoardsBoardid(board),
   });
-  const query = useQuery({
-    queryKey: ["board-list", board, page, search, postTypeCode, resource],
-    queryFn: async () =>
+  const query = useInfiniteFeed({
+    queryKey: ["board-list", board, search, postTypeCode, resource],
+    queryFn: async (page) =>
       resource === "announcements"
         ? (
             await getApiBoardsBoardidAnnouncements(board, {
@@ -81,100 +87,261 @@ export function BoardScreen({ board }: { board: "community" | "news" }) {
     queryFn: () =>
       getApiBoardsBoardidAnnouncements(board, { page: 0, size: 100 }),
   });
+  const submitSearch = () => setSearch(keyword.trim());
   return (
-    <PagedList
+    <InfiniteList
+      compact
       title={board === "community" ? "커뮤니티" : "위스키 소식"}
-      items={query.data?.content ?? []}
-      page={page}
-      onPage={setPage}
-      hasNext={page + 1 < (query.data?.page?.totalPages ?? 0)}
-      loading={query.isFetching}
-      error={query.error ?? info.error}
-      refresh={() => void query.refetch()}
+      {...query.feed}
+      error={query.feed.error ?? info.error}
       header={
-        <View style={{ gap: 16 }}>
-          <View style={styles.row}>
-            <NavLink href="/board/community">커뮤니티</NavLink>
-            <NavLink href="/board/news">소식</NavLink>
+        <View style={{ gap: 12 }}>
+          <View style={[styles.row, { justifyContent: "space-between" }]}>
+            <BoardTabs
+              value={board}
+              onChange={(next) => {
+                if (next === board) return;
+                setBoard(next);
+                setResource("posts");
+                setPostTypeCode(undefined);
+                setKeyword("");
+                setSearch("");
+              }}
+            />
+            <NavLink href={`/board/${board}/posts/new`}>글쓰기</NavLink>
           </View>
           <Field
             label="게시글 검색"
             value={keyword}
             onChangeText={setKeyword}
-            onSubmitEditing={() => {
-              setSearch(keyword.trim());
-              setPage(0);
-            }}
+            returnKeyType="search"
+            onSubmitEditing={submitSearch}
+            trailing={
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="검색"
+                onPress={submitSearch}
+                style={boardStyles.iconButton}
+              >
+                <Search size={20} color={colors.muted} />
+              </Pressable>
+            }
           />
-          <Action
-            title="검색"
-            onPress={() => {
-              setSearch(keyword.trim());
-              setPage(0);
-            }}
-          />
-          <View style={styles.row}>
-            <Action
-              secondary
-              title="전체"
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+          >
+            <FilterChip
+              label="전체"
+              selected={resource === "posts" && !postTypeCode}
               onPress={() => {
                 setPostTypeCode(undefined);
                 setResource("posts");
-                setPage(0);
               }}
             />
-            <Action
-              secondary
-              title="공지"
+            <FilterChip
+              label="공지사항"
+              selected={resource === "announcements"}
               onPress={() => {
                 setPostTypeCode(undefined);
                 setResource("announcements");
-                setPage(0);
               }}
             />
             {info.data?.data.postTypes?.map((type) => (
-              <Action
-                secondary
+              <FilterChip
                 key={type.code}
-                title={type.name ?? type.code ?? "분류"}
+                label={type.name ?? type.code ?? "분류"}
+                selected={resource === "posts" && postTypeCode === type.code}
                 onPress={() => {
                   setPostTypeCode(type.code);
                   setResource("posts");
-                  setPage(0);
                 }}
               />
             ))}
-          </View>
+          </ScrollView>
           {resource === "posts"
             ? announcements.data?.data.content
                 ?.filter((item) => item.pinned)
                 .slice(0, 3)
                 .map((item) => (
-                  <NavLink
+                  <Link
                     key={item.id}
-                    href={`/board/${board}/announcements/${item.id}`}
+                    href={`/board/${board}/announcements/${item.id}` as Href}
+                    asChild
                   >
-                    공지 · {item.title}
-                  </NavLink>
+                    <Pressable
+                      style={boardStyles.pinned}
+                      accessibilityRole="link"
+                    >
+                      <Pin size={14} color={colors.muted} />
+                      <Text style={boardStyles.rowTitle}>
+                        공지 · {item.title}
+                      </Text>
+                    </Pressable>
+                  </Link>
                 ))
             : null}
-          <NavLink href={`/board/${board}/posts/new`}>글쓰기</NavLink>
         </View>
       }
       renderItem={(item) => (
-        <>
-          <NavLink href={`/board/${board}/${resource}/${item.id}`}>
-            {item.title}
-          </NavLink>
-          <Label muted>
-            {"authorNickname" in item ? item.authorNickname : "공지"} ·{" "}
-            {date(item.createdAt)}
-          </Label>
-        </>
+        <SurfaceLink
+          href={`/board/${board}/${resource}/${item.id}`}
+          testID={`board-row-${item.id}`}
+          style={boardStyles.listRow}
+        >
+          <View
+            style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}
+          >
+            <View
+              style={[
+                boardStyles.categoryBadge,
+                resource === "announcements"
+                  ? { backgroundColor: "#2563eb20", borderColor: "#60a5fa44" }
+                  : null,
+              ]}
+            >
+              <Text
+                style={[
+                  boardStyles.category,
+                  resource === "announcements" ? { color: "#bfdbfe" } : null,
+                ]}
+              >
+                {resource === "announcements"
+                  ? "공지사항"
+                  : "postType" in item
+                    ? (item.postType?.name ?? "이야기")
+                    : "이야기"}
+              </Text>
+            </View>
+            <Text style={[boardStyles.rowTitle, { flex: 1 }]}>
+              {item.title}
+            </Text>
+          </View>
+          <View style={boardStyles.metadata}>
+            <Text style={boardStyles.metaText}>
+              {"authorNickname" in item ? item.authorNickname : "위스키내비"} ·{" "}
+              {shortDate(item.createdAt)}
+            </Text>
+            <View style={boardStyles.counters}>
+              {"commentCount" in item ? (
+                <>
+                  <MessageSquare size={12} color={colors.muted} />
+                  <Text style={boardStyles.metaText}>
+                    {item.commentCount ?? 0}
+                  </Text>
+                </>
+              ) : null}
+              {"viewCount" in item ? (
+                <>
+                  <Eye size={12} color={colors.muted} />
+                  <Text style={boardStyles.metaText}>
+                    {item.viewCount ?? 0}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+          </View>
+        </SurfaceLink>
       )}
     />
   );
 }
+function shortDate(value?: string) {
+  return value ? value.slice(0, 10).replaceAll("-", ".") : "-";
+}
+const boardStyles = StyleSheet.create({
+  iconButton: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listRow: {
+    paddingVertical: 14,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    minHeight: 76,
+  },
+  pinned: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    padding: 12,
+    minHeight: 48,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+  },
+  categoryBadge: {
+    alignSelf: "flex-start",
+    maxWidth: "40%",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "#ffffff08",
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  category: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.muted,
+  },
+  rowTitle: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.text,
+    flexShrink: 1,
+  },
+  metadata: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  counters: { flexDirection: "row", alignItems: "center", gap: 4 },
+  metaText: {
+    fontFamily: "NaviSans",
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.muted,
+  },
+  comment: {
+    gap: 8,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  original: {
+    padding: 20,
+    gap: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+  },
+  commentsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingTop: 28,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.line,
+  },
+  composer: {
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    marginTop: 8,
+  },
+});
+
 function Comment({
   comment,
   board,
@@ -191,12 +358,13 @@ function Comment({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(comment.content ?? "");
   const [reply, setReply] = useState("");
+  const [replyOpen, setReplyOpen] = useState(false);
   const task = useTask();
   return (
-    <View style={styles.section}>
-      <Label muted>
-        {comment.authorNickname} · {date(comment.createdAt)}
-      </Label>
+    <View style={boardStyles.comment}>
+      <Text style={boardStyles.metaText}>
+        {comment.authorNickname} · {shortDate(comment.createdAt)}
+      </Text>
       {editing ? (
         <>
           <Field
@@ -255,7 +423,14 @@ function Comment({
         </View>
       ) : null}
       {comment.replies?.map((item) => (
-        <View key={item.id} style={{ paddingLeft: 16 }}>
+        <View
+          key={item.id}
+          style={{
+            paddingLeft: 16,
+            borderLeftWidth: 2,
+            borderLeftColor: colors.line,
+          }}
+        >
           <Comment
             comment={item}
             board={board}
@@ -266,6 +441,23 @@ function Comment({
         </View>
       ))}
       {userId ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={replyOpen ? "답글 닫기" : "답글 쓰기"}
+          onPress={() => setReplyOpen(!replyOpen)}
+          style={{
+            minHeight: 48,
+            justifyContent: "center",
+            alignSelf: "flex-start",
+            minWidth: 48,
+          }}
+        >
+          <Text style={boardStyles.metaText}>
+            {replyOpen ? "답글 닫기" : "답글 쓰기"}
+          </Text>
+        </Pressable>
+      ) : null}
+      {userId && replyOpen ? (
         <>
           <Field label="답글" value={reply} onChangeText={setReply} />
           <Action
@@ -336,105 +528,133 @@ export function PostScreen({
   }, [board, id, announcement, valid]);
   const post = query.data;
   return (
-    <Screen
-      title={post?.title ?? (announcement ? "공지사항" : "게시글")}
-      refresh={() => void query.refetch()}
-      refreshing={query.isFetching}
-    >
-      <Message
-        error={!valid ? "게시글 번호가 올바르지 않습니다." : query.error}
-      />
-      {query.isLoading ? <Loading /> : null}
-      {post ? (
-        <>
-          <Label muted>
-            {"authorNickname" in post ? post.authorNickname : "위스키내비"} ·{" "}
-            {date(post.createdAt)}
-          </Label>
-          <RichContent html={post.content} />
-          {!announcement &&
-          me.data?.data.roles?.some((role) =>
-            ["ROLE_ADMIN", "ROLE_SUPER_ADMIN"].includes(role),
-          ) ? (
-            <AdminActions board={board} post={post as PostResponse} />
+    <InfiniteList
+      compact
+      title={announcement ? "공지사항" : "게시글"}
+      intro={<View />}
+      items={!announcement ? (comments.data?.data ?? []) : []}
+      hasNext={false}
+      loadMore={() => {}}
+      loading={!announcement && comments.isLoading}
+      error={!valid ? "게시글 번호가 올바르지 않습니다." : query.error}
+      refresh={() => {
+        void query.refetch();
+        refresh();
+      }}
+      refreshing={query.isRefetching}
+      endText=""
+      emptyText={announcement ? "" : "첫 댓글을 남겨보세요."}
+      header={
+        <View style={{ gap: 16 }}>
+          <NavLink href={`/board/${board}`}>목록으로</NavLink>
+          {query.isLoading ? <Loading /> : null}
+          {post ? (
+            <View testID="post-original" style={boardStyles.original}>
+              <Text accessibilityRole="header" style={styles.title}>
+                {post.title}
+              </Text>
+              <Label muted>
+                {"authorNickname" in post ? post.authorNickname : "위스키내비"}{" "}
+                · {date(post.createdAt)}
+              </Label>
+              <RichContent html={post.content} />
+              {!announcement &&
+              me.data?.data.roles?.some((role) =>
+                ["ROLE_ADMIN", "ROLE_SUPER_ADMIN"].includes(role),
+              ) ? (
+                <AdminActions board={board} post={post as PostResponse} />
+              ) : null}
+              {!announcement &&
+              me.data?.data.id &&
+              "authorId" in post &&
+              me.data.data.id === post.authorId ? (
+                <>
+                  <NavLink href={`/board/${board}/posts/${id}/edit`}>
+                    게시글 수정
+                  </NavLink>
+                  <Action
+                    secondary
+                    title="게시글 삭제"
+                    disabled={task.pending}
+                    onPress={() =>
+                      confirmAction(
+                        "게시글 삭제",
+                        "게시글을 삭제하시겠습니까?",
+                        () =>
+                          void task.run(async () => {
+                            await deleteApiBoardsBoardidPostsPostid(board, id);
+                            await client.invalidateQueries({
+                              queryKey: ["board-list", board],
+                            });
+                            router.replace(`/board/${board}` as never);
+                          }),
+                      )
+                    }
+                  />
+                </>
+              ) : null}
+            </View>
           ) : null}
-          {!announcement &&
-          me.data?.data.id &&
-          "authorId" in post &&
-          me.data.data.id === post.authorId ? (
-            <>
-              <NavLink href={`/board/${board}/posts/${id}/edit`}>
-                게시글 수정
-              </NavLink>
-              <Action
-                secondary
-                title="게시글 삭제"
-                disabled={task.pending}
-                onPress={() =>
-                  confirmAction(
-                    "게시글 삭제",
-                    "게시글을 삭제하시겠습니까?",
-                    () =>
-                      void task.run(async () => {
-                        await deleteApiBoardsBoardidPostsPostid(board, id);
-                        await client.invalidateQueries({
-                          queryKey: ["board-list", board],
-                        });
-                        router.replace(`/board/${board}` as never);
-                      }),
-                  )
-                }
-              />
-            </>
+          {!announcement ? (
+            <View testID="comments-section" style={boardStyles.commentsHeader}>
+              <MessageSquare size={18} color={colors.text} />
+              <Heading>댓글 {comments.data?.data.length ?? 0}</Heading>
+            </View>
           ) : null}
-        </>
-      ) : null}
-      {!announcement ? (
-        <>
-          <Heading>댓글</Heading>
           <Message error={comments.error} />
-          {comments.data?.data.map((item) => (
-            <Comment
-              key={item.id}
-              comment={item}
-              board={board}
-              postId={id}
-              userId={me.data?.data.id}
-              refresh={refresh}
-            />
-          ))}
-          {signedIn ? (
-            <>
-              <Field
-                label="댓글 내용"
-                multiline
-                value={comment}
-                onChangeText={setComment}
-              />
-              <Action
-                title="댓글 등록"
-                disabled={task.pending || !comment.trim()}
-                onPress={() =>
-                  void task.run(async () => {
-                    await postApiBoardsBoardidPostsPostidComments(board, id, {
-                      content: comment,
-                    });
-                    setComment("");
-                    refresh();
-                  })
-                }
-              />
-            </>
-          ) : (
-            <NavLink href="/sign-in">로그인하고 댓글 쓰기</NavLink>
-          )}
+        </View>
+      }
+      renderItem={(item) => (
+        <Comment
+          comment={item}
+          board={board}
+          postId={id}
+          userId={me.data?.data.id}
+          refresh={refresh}
+        />
+      )}
+      footer={
+        <>
+          {!announcement && post ? (
+            <View style={boardStyles.composer}>
+              {signedIn ? (
+                <>
+                  <Field
+                    label="댓글 내용"
+                    multiline
+                    value={comment}
+                    onChangeText={setComment}
+                  />
+                  <Action
+                    title="댓글 등록"
+                    disabled={task.pending || !comment.trim()}
+                    onPress={() =>
+                      void task.run(async () => {
+                        await postApiBoardsBoardidPostsPostidComments(
+                          board,
+                          id,
+                          {
+                            content: comment,
+                          },
+                        );
+                        setComment("");
+                        refresh();
+                      })
+                    }
+                  />
+                </>
+              ) : (
+                <NavLink href="/sign-in">로그인하고 댓글 쓰기</NavLink>
+              )}
+            </View>
+          ) : null}
+          <Message error={task.error} />
         </>
-      ) : null}
-      <Message error={task.error} />
-      <NavLink href={`/board/${board}`}>목록으로</NavLink>
-    </Screen>
+      }
+    />
   );
 }
+
 function PostForm({ board, post }: { board: string; post?: PostResponse }) {
   const [title, setTitle] = useState(post?.title ?? "");
   const [content, setContent] = useState(post?.content ?? "");

@@ -1,10 +1,19 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
-const page = (content) => ({
-  content,
-  page: { number: 0, size: 20, totalElements: content.length, totalPages: 1 },
-});
+const paginate = (content, params) => {
+  const number = Math.max(0, Number(params.get("page") ?? 0));
+  const size = Math.max(1, Number(params.get("size") ?? 20));
+  return {
+    content: content.slice(number * size, (number + 1) * size),
+    page: {
+      number,
+      size,
+      totalElements: content.length,
+      totalPages: Math.ceil(content.length / size),
+    },
+  };
+};
 const bottle = {
   id: 1,
   name: "네이비 싱글캐스크 12",
@@ -115,6 +124,15 @@ export function createFixtureServer() {
   const reset = () => {
     state = {
       posts: [structuredClone(post)],
+      bottles: [structuredClone(bottle)],
+      products: {
+        general: [structuredClone(product)],
+        ticket: [structuredClone(ticket)],
+        smart: [structuredClone(smart)],
+      },
+      notices: [structuredClone(notice)],
+      ended: [],
+      announcements: [],
       comments: [],
       inquiries: [],
       applications: [],
@@ -143,6 +161,7 @@ export function createFixtureServer() {
     const url = new URL(req.url, "http://127.0.0.1");
     const path = url.pathname;
     const method = req.method;
+    const page = (content) => paginate(content, url.searchParams);
     const send = (value, status = 200) => {
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(value));
@@ -163,6 +182,66 @@ export function createFixtureServer() {
       reset();
       return send({ reset: true });
     }
+    if (path === "/__test/seed-feed" && method === "POST") {
+      const count = body.design ? 2 : 45;
+      state.posts = Array.from({ length: count }, (_, i) => ({
+        ...post,
+        id: i + 1,
+        title: i ? `싱글캐스크 테이스팅 이야기 ${i + 1}` : post.title,
+        authorId: 42,
+        authorNickname: "캐스크노트",
+        commentCount: 3,
+        viewCount: 128 + i,
+      }));
+      state.bottles = Array.from({ length: count }, (_, i) => ({
+        ...bottle,
+        id: i + 1,
+        name: i ? `싱글캐스크 위스키 ${i + 1}` : bottle.name,
+      }));
+      for (const [channel, base] of [
+        ["general", product],
+        ["ticket", ticket],
+        ["smart", smart],
+      ]) {
+        state.products[channel] = Array.from({ length: count }, (_, i) => ({
+          ...base,
+          id: base.id + i,
+          name: i ? `${base.name} ${i + 1}` : base.name,
+        }));
+      }
+      state.notices = Array.from({ length: count }, (_, i) => ({
+        ...notice,
+        id: i + 1,
+        bottleBrand: "WhiskyNavi",
+        noticeName: i ? "가을 싱글캐스크 출시 예약" : notice.noticeName,
+      }));
+      state.ended = body.design
+        ? [
+            {
+              ...notice,
+              id: 90,
+              bottleBrand: "WhiskyNavi",
+              noticeName: "지난 싱글캐스크 예약",
+              reservationEndAt: "2026-01-01T10:00:00+09:00",
+            },
+          ]
+        : [];
+      state.announcements = [
+        { ...post, id: 80, title: "커뮤니티 이용 안내", pinned: true },
+      ];
+      state.comments = Array.from({ length: 3 }, (_, i) => ({
+        id: i + 1,
+        authorId: 42,
+        authorNickname: ["캐스크노트", "몰트여행", "위스키친구"][i],
+        createdAt: "2026-10-01T12:00:00+09:00",
+        content: [
+          "첫 잔은 바닐라 향이 선명하네요. 좋은 후기 감사합니다!",
+          "저도 같은 보틀을 열었는데 여운이 오래 남더라고요.",
+          "다음 테이스팅도 기대할게요.",
+        ][i],
+      }));
+      return send({ seeded: count });
+    }
     if (path === "/__test/state")
       return send({
         posts: state.posts.length,
@@ -171,7 +250,7 @@ export function createFixtureServer() {
         applications: state.applications.length,
         requests: state.requests,
       });
-    state.requests.push({ method, path });
+    state.requests.push({ method, path, query: url.search });
     if (path === "/api/auth/login")
       return body.email === "rn@example.test" &&
         body.password === "mobile-e2e-123"
@@ -262,10 +341,11 @@ export function createFixtureServer() {
     if (path === "/api/bottles" || path === "/api/2.0/bottles")
       return send(
         page(
-          !url.searchParams.get("keyword") ||
-            bottle.name.includes(url.searchParams.get("keyword"))
-            ? [bottle]
-            : [],
+          state.bottles.filter(
+            (item) =>
+              !url.searchParams.get("keyword") ||
+              item.name.includes(url.searchParams.get("keyword")),
+          ),
         ),
       );
     if (path === "/api/2.0/bottles/parameters")
@@ -275,9 +355,9 @@ export function createFixtureServer() {
         ? send(bottle)
         : send({ message: "정보가 없습니다." }, 404);
     if (path === "/api/bottles/reservations/notices")
-      return send(page([notice]));
+      return send(page(state.notices));
     if (path === "/api/bottles/reservations/notices/recent-ended")
-      return send([]);
+      return send(state.ended);
     if (/\/bottles\/reservations\/notices\/\d+$/.test(path))
       return send(notice);
     if (
@@ -288,6 +368,7 @@ export function createFixtureServer() {
         ...body,
         id: 1,
         noticeId: 1,
+        pickupUserBusinessId: body.userBusinessId,
         noticeName: notice.noticeName,
         status: "APPLIED",
         pickupBusinessName: location.businessName,
@@ -315,7 +396,9 @@ export function createFixtureServer() {
         readOnly: false,
         postTypes: [{ code: "GENERAL", name: "자유", usages: ["POST"] }],
       });
-    if (/\/announcements$/.test(path)) return send(page([]));
+    if (/\/announcements$/.test(path)) return send(page(state.announcements));
+    if (/\/announcements\/\d+$/.test(path))
+      return send(state.announcements[0] ?? { ...post, id: 80 });
     if (/^\/api\/boards\/[^/]+\/posts$/.test(path)) {
       if (method === "POST") {
         const value = { ...post, ...body, id: state.posts.length + 1 };
@@ -372,7 +455,19 @@ export function createFixtureServer() {
         : path.includes("smart-order-products")
           ? smart
           : product;
-      return send(/\/\d+$/.test(path) ? value : page([value]));
+      return send(
+        /\/\d+$/.test(path)
+          ? value
+          : page(
+              state.products[
+                path.includes("ticket-products")
+                  ? "ticket"
+                  : path.includes("smart-order-products")
+                    ? "smart"
+                    : "general"
+              ],
+            ),
+      );
     }
     if (path === "/api/2.0/shipping-policy")
       return send({

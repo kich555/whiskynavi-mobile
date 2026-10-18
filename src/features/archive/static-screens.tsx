@@ -184,15 +184,3 @@ export function TermsScreen() {
     </Screen>
   );
 }
-export function ShopScreen() {
-  return (
-    <Screen title="쇼핑">
-      <Heading>위스키와 함께하는 경험</Heading>
-      <NavLink href="/general-items">일반상품 · 배송 받기</NavLink>
-      <NavLink href="/ticket-products">이용권 · 새로운 경험</NavLink>
-      <NavLink href="/smart-order">스마트오더 · 매장 픽업</NavLink>
-      <NavLink href="/general-items/cart">장바구니</NavLink>
-      <NavLink href="/orders/guest">비회원 주문 조회</NavLink>
-    </Screen>
-  );
-}

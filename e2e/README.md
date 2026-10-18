@@ -57,7 +57,7 @@ Maestro는 실제 앱의 네이티브 요소를 조작합니다. iOS 키체인�
 
 `07-design-controls.yaml`은 메뉴 선택·필터 닫기·비밀번호 표시 전환을 추가로 검사합니다.
 
-`e2e/maestro`의 7개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
+`e2e/maestro`의 9개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
 
 ## CI
 
@@ -66,7 +66,7 @@ Maestro는 실제 앱의 네이티브 요소를 조작합니다. iOS 키체인�
 - quality: 설치, 린트, TypeScript, 단위·계약, Expo Doctor, 웹 번들, Playwright.
 - android-e2e: Linux KVM 에뮬레이터, E2E release APK 빌드, Maestro.
 
-서명키·Expo 계정·운영 비밀 없이 실행하는 합성 회귀 파이프라인입니다. 배포용 AAB/IPA 서명·스토어 제출은 별도 단계입니다. iOS는 로컬 러너를 제공하며 Mac CI 비용을 피하도록 기본 CI에서는 실행하지 않습니다. GitHub에 push하거나 workflow를 원격 실행한 상태는 아닙니다.
+서명키·Expo 계정·운영 비밀 없이 실행하는 합성 회귀 파이프라인입니다. 배포용 AAB/IPA 서명·스토어 제출은 별도 단계입니다. iOS는 로컬 러너를 제공하며 Mac CI 비용을 피하도록 기본 CI에서는 실행하지 않습니다. main push/PR에서 자동 실행되며, 원격 job의 성공 여부는 해당 Actions 실행 결과로 별도 확인해야 합니다.
 
 실패 결과는 `artifacts/`에 보관하고 Git에서는 제외합니다. CI 업로드 대상은 합성 테스트 결과뿐입니다. 실제 사용자 정보로 이 테스트를 실행하거나 trace/스크린샷을 공유하지 마세요.
 
@@ -98,4 +98,27 @@ Expo SDK 57의 웹 글꼴 로더는 CSS 등록 상태로 준비 여부를 판단
 
 ## Glassmorphism 후속 회귀
 
-현재 최종 Playwright는 37개다. 주문 동의 체크박스의 Space 선택·해제와 결제 전 입력 검증, `filter-selected-mobile.png` 시각 기준을 추가했다. 아카이브·로그인 화면 기준은 변경된 공통 컨트롤을 직접 검토한 뒤 갱신했다. `design:compare`는 체크박스 선택 캡처까지 총 19개를 생성한다. [플랫폼 지원과 검증 범위](../.scratch/rn-ux-review/GLASS-CONTROLS.md)를 참고한다.
+Glassmorphism 변경 시점의 Playwright는 37개였다. 주문 동의 체크박스의 Space 선택·해제와 결제 전 입력 검증, `filter-selected-mobile.png` 시각 기준을 추가했다. 아카이브·로그인 화면 기준은 변경된 공통 컨트롤을 직접 검토한 뒤 갱신했다. `design:compare`는 체크박스 선택 캡처까지 총 19개를 생성한다. [플랫폼 지원과 검증 범위](../.scratch/rn-ux-review/GLASS-CONTROLS.md)를 참고한다.
+
+## 예약·게시판·쇼핑 동기화와 본문 여백 (2026-10-18)
+
+현재 기본 회귀는 Playwright 46개이며, 아래 웹 원본 비교를 켜면 47개입니다. 커뮤니티 3페이지 누적·검색 초기화·추가 로딩 오류/재시도, 아카이브/상품 추가 로딩, 화면 이동 없는 게시판/쇼핑 탭, 이동 언더라인과 모션 줄이기, 예약 신청/수정, 본문 빈 줄의 실제 높이를 검사합니다.
+
+`08-community-design.yaml`, `09-shopping.yaml`을 포함한 9개 Maestro top-level flow를 제공합니다. YAML 검사는 실행 검증이 아닙니다. 네이티브 E2E는 위 Android/iOS 실행 환경에서 별도로 실행하세요.
+
+웹과 RN을 동일한 합성 데이터로 비교하려면 인접한 `../whiskynavi` 웹 저장소와 설치된 웹 의존성이 필요합니다. 별도 터미널에서 다음을 실행합니다.
+
+```sh
+node scripts/web-source-compare.mjs
+```
+
+이 명령은 소스·정적 파일·필수 설정만 임시 폴더에 복사하고 3101 포트에서 실행합니다. `.env`·Git·자격증명 파일은 복사하지 않습니다. 서버가 출력하는 `COMPARE_WEB_DIRECTORY` 경로를 사용해 다른 터미널에서 실행합니다.
+
+```sh
+COMPARE_WEB_DIRECTORY='서버가 출력한 임시 경로' \
+COMPARE_WEB_ORIGIN=http://localhost:3101 npm run test:e2e:web
+```
+
+비교는 예약 목록/상세/신청 영역, 커뮤니티 목록/상세, 소식, 일반상품 목록/상세, 이용권, 스마트오더, 앱 쇼핑 진입을 375/390/430px에서 캡처합니다. 결과와 `focused-report.json`은 `artifacts/design-sync/`에 저장합니다. 실제 계정 대신 로컬 테스트 세션을 사용합니다. 브라우저의 외부 요청은 모두 차단하며, 웹에 포함된 Vercel 분석 스크립트의 차단 시도만 알려진 항목으로 보고합니다. 그 외 외부 origin이나 렌더링 오류는 실패입니다.
+
+기본 CI에서는 인접 웹 저장소가 필요 없는 46개 회귀만 실행하고 원본 비교 1개는 건너뜁니다. 위 비교는 RN 웹 미리보기이며 실기기 캡처나 Maestro 실행 결과를 의미하지 않습니다.

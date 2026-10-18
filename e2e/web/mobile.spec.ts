@@ -209,6 +209,9 @@ test("reservation uses a chosen pickup location and stores the application", asy
 }) => {
   await login(page, "/reservation/1");
   await page
+    .getByRole("button", { name: "픽업 업장 선택", exact: true })
+    .click();
+  await page
     .getByRole("button", {
       name: "테스트 픽업 매장 · 서울시 테스트로 1",
       exact: true,
@@ -218,6 +221,14 @@ test("reservation uses a chosen pickup location and stores the application", asy
   await expect(
     page.getByRole("button", { name: "예약 정보 수정", exact: true }),
   ).toBeVisible();
+  await page
+    .getByRole("button", { name: "예약 정보 수정", exact: true })
+    .click();
+  await page.getByRole("button", { name: "수량 늘리기", exact: true }).click();
+  await page
+    .getByRole("button", { name: "변경사항 저장", exact: true })
+    .click();
+  await expect(page.getByText("신청 수량 2병", { exact: false })).toBeVisible();
   expect(
     (await (await request.get("http://127.0.0.1:8787/__test/state")).json())
       .applications,
@@ -359,9 +370,7 @@ test("archive sorting uses an explicit bottom sheet selection", async ({
   ).toBeVisible();
 });
 
-test("catalogue sale badge stays inside its two-column card", async ({
-  page,
-}) => {
+test("catalogue sale badge stays inside its mobile card", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/general-items");
   const card = page.getByTestId("product-card-1");
@@ -760,4 +769,249 @@ test("visual regression: glass filter selection", async ({ page }) => {
     maxDiffPixelRatio: 0.015,
     scale: "css",
   });
+});
+
+test("community infinite scroll appends, ends, and resets on search", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", { data: {} });
+  await page.goto("/board/community");
+  const list = page.getByTestId("infinite-list");
+  await expect(page.getByTestId("board-row-1")).toBeVisible();
+  const box = await page.getByTestId("board-row-1").boundingBox();
+  expect(box!.height).toBeLessThan(110);
+  for (const id of [21, 45]) {
+    if (id === 45) {
+      await expect(page.getByTestId("board-row-40")).toBeAttached();
+      await list.evaluate((el) => el.scrollTo({ top: 0 }));
+      await expect(page.getByTestId("board-row-1")).toBeVisible();
+    }
+    await page
+      .getByRole("button", { name: "더 보기", exact: true })
+      .scrollIntoViewIfNeeded();
+    await expect(page.getByTestId(`board-row-${id}`)).toBeAttached();
+  }
+  await expect(page.getByText("모두 확인했어요")).toBeVisible();
+  const state = await (
+    await request.get("http://127.0.0.1:8787/__test/state")
+  ).json();
+  const pages = state.requests
+    .filter((r: { path: string }) => r.path === "/api/boards/community/posts")
+    .map((r: { query: string }) => new URLSearchParams(r.query).get("page"));
+  expect(pages).toEqual(["0", "1", "2"]);
+  await list.evaluate((el) => el.scrollTo({ top: 0 }));
+  await page.getByRole("textbox", { name: "게시글 검색" }).fill("첫 번째");
+  await page.getByRole("button", { name: "검색", exact: true }).click();
+  await expect(page.getByTestId("board-row-1")).toBeVisible();
+  await expect(page.getByTestId("board-row-21")).toHaveCount(0);
+});
+test("failed next page keeps loaded community rows and can retry", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", { data: {} });
+  let failed = true;
+  let attempts = 0;
+  await page.route("**/api/boards/community/posts?*", async (route) => {
+    if (new URL(route.request().url()).searchParams.get("page") === "1") {
+      attempts++;
+      if (failed)
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "추가 목록을 불러오지 못했습니다." }),
+        });
+    }
+    return route.continue();
+  });
+  await page.goto("/board/community");
+  await expect(page.getByTestId("board-row-1")).toBeVisible();
+  const list = page.getByTestId("infinite-list");
+  await page
+    .getByRole("button", { name: "더 보기", exact: true })
+    .scrollIntoViewIfNeeded();
+  const retry = page.getByRole("button", {
+    name: "추가 목록 다시 불러오기",
+    exact: true,
+  });
+  await expect(retry).toBeVisible();
+  expect(attempts).toBe(1);
+  await list.evaluate((el) => el.scrollTo({ top: 0 }));
+  await expect(page.getByTestId("board-row-1")).toBeVisible();
+  failed = false;
+  await retry.click();
+  await expect(page.getByTestId("board-row-21")).toBeAttached();
+  expect(attempts).toBe(2);
+});
+test("archive grid appends another page without losing the first item", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", { data: {} });
+  await page.goto("/archive");
+  const list = page.getByTestId("infinite-list");
+  await expect(
+    page.getByRole("link", { name: "네이비 싱글캐스크 12", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "더 보기", exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole("link", { name: "싱글캐스크 위스키 21", exact: true }),
+  ).toBeAttached();
+  await list.evaluate((el) => el.scrollTo({ top: 0 }));
+  await expect(
+    page.getByRole("link", { name: "네이비 싱글캐스크 12", exact: true }),
+  ).toBeVisible();
+});
+test("post body and comments have distinct visual sections", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", {
+    data: { design: true },
+  });
+  await page.goto("/board/community/posts/1");
+  await expect(page.getByTestId("post-original")).toContainText(
+    "위스키를 함께 알아가는 공간입니다.",
+  );
+  await expect(page.getByTestId("comments-section")).toContainText("댓글 3");
+  const original = await page.getByTestId("post-original").boundingBox();
+  const comments = await page.getByTestId("comments-section").boundingBox();
+  expect(comments!.y).toBeGreaterThanOrEqual(
+    original!.y + original!.height + 16,
+  );
+  await page.screenshot({
+    path: "artifacts/design-sync/rn-community-detail.png",
+  });
+  await page.goto("/board/news");
+  await page.getByRole("button", { name: "공지사항", exact: true }).click();
+  await expect(page.getByTestId("board-row-80")).toContainText(
+    "커뮤니티 이용 안내",
+  );
+  await page.getByTestId("board-row-80").click();
+  await expect(page.getByTestId("post-original")).toBeVisible();
+  await expect(page.getByTestId("comments-section")).toHaveCount(0);
+});
+
+test("community and news switch inside one screen with a moving tab indicator", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", {
+    data: { design: true },
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/board/community");
+  const community = page.getByRole("tab", { name: "커뮤니티", exact: true });
+  const news = page.getByRole("tab", { name: "소식", exact: true });
+  await expect(community).toHaveAttribute("aria-selected", "true");
+  await page.evaluate(() => document.fonts.ready);
+  const indicator = page.getByTestId("board-tab-indicator");
+  const initial = (await indicator.boundingBox())!.x;
+  const url = page.url();
+  await news.click();
+  await expect(news).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(url);
+  await expect
+    .poll(async () => Math.round((await indicator.boundingBox())!.x))
+    .toBe(Math.round((await news.boundingBox())!.x));
+  expect((await indicator.boundingBox())!.x).toBeGreaterThan(initial + 30);
+  await expect(
+    page.getByRole("link", { name: "글쓰기", exact: true }),
+  ).toHaveAttribute("href", "/board/news/posts/new");
+  await community.click();
+  await expect(community).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(url);
+  await expect
+    .poll(async () => Math.round((await indicator.boundingBox())!.x))
+    .toBe(Math.round((await community.boundingBox())!.x));
+});
+test("board tab switching also works with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/board/news");
+  const url = page.url();
+  await page.getByRole("tab", { name: "커뮤니티", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "커뮤니티", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(url);
+});
+
+test("shopping tab opens products and changes channels without navigation", async ({
+  page,
+}) => {
+  await page.goto("/shop");
+  const url = page.url();
+  await expect(page.getByTestId("product-card-1")).toBeVisible();
+  await page.getByRole("button", { name: "이용권", exact: true }).click();
+  await expect(page.getByTestId("product-card-2")).toBeVisible();
+  await expect(page).toHaveURL(url);
+  await page.getByRole("button", { name: "스마트오더", exact: true }).click();
+  await expect(page.getByTestId("product-card-3")).toBeVisible();
+  await expect(
+    page.getByText("19세 미만은 주류를 구매할 수 없습니다.", { exact: false }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(url);
+});
+test("mobile catalogue follows the web two-column layout and loads more", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", { data: {} });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/general-items");
+  const first = page.getByTestId("product-card-1");
+  await expect(first).toBeVisible();
+  expect((await first.boundingBox())!.width).toBeGreaterThan(150);
+  expect((await first.boundingBox())!.width).toBeLessThan(180);
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.getByTestId("product-card-20")).toBeAttached();
+  await page
+    .getByRole("button", { name: "더 보기", exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("product-card-21")).toBeAttached();
+  await page
+    .getByTestId("infinite-list")
+    .evaluate((el) => el.scrollTo({ top: 0 }));
+  await expect(first).toBeVisible();
+});
+test("editor blank paragraphs occupy one body line in post and archive", async ({
+  page,
+}) => {
+  const description =
+    "<div><p>빈줄 앞 문단</p><p><span><br></span></p><p>빈줄 뒤 문단</p><p>문단 안 첫줄<br>문단 안 둘째줄</p></div>";
+  await page.route("**/api/boards/community/posts/1", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: 1,
+        title: "본문 여백 검증",
+        authorNickname: "테스터",
+        content: description,
+      }),
+    });
+  });
+  await page.route("**/api/bottles/1", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: 1, name: "본문 여백 검증 보틀", description }),
+    }),
+  );
+  for (const path of ["/board/community/posts/1", "/archive/1"]) {
+    await page.goto(path);
+    const before = page.getByText("빈줄 앞 문단", { exact: true });
+    await expect(before).toBeVisible();
+    const a = await before.boundingBox();
+    const b = await page
+      .getByText("빈줄 뒤 문단", { exact: true })
+      .boundingBox();
+    const blank = await page.getByTestId("rich-empty-line").boundingBox();
+    expect(blank!.height).toBeCloseTo(22, 0);
+    expect(b!.y - a!.y - a!.height).toBeCloseTo(blank!.height, 0);
+  }
 });

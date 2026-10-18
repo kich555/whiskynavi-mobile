@@ -1,3 +1,4 @@
+import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
@@ -33,7 +34,7 @@ import {
   Loading,
   Message,
   NavLink,
-  PagedList,
+  InfiniteList,
   RequireAuth,
   Screen,
   Toggle,
@@ -61,11 +62,11 @@ function MyPage() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [selected, setSelected] = useState(tab ?? "profile");
   const query = useQuery({ queryKey: ["me"], queryFn: () => getApiUsersMe() });
-  if (selected === "orders")
+  if (selected === "orders" || selected === "reservations")
     return (
       <View style={{ flex: 1 }}>
         <AccountTabs value={selected} onChange={setSelected} />
-        <OrdersList />
+        {selected === "orders" ? <OrdersList /> : <MyReservations />}
       </View>
     );
   return (
@@ -109,8 +110,6 @@ function MyPage() {
             </>
           ) : selected === "business" ? (
             <BusinessSection />
-          ) : selected === "reservations" ? (
-            <MyReservations />
           ) : (
             <>
               {FAQ_DATA.map((faq) => (
@@ -331,18 +330,17 @@ function ProfileForm({ user }: { user: UserSelfResponse }) {
   );
 }
 function MyReservations() {
-  const [page, setPage] = useState(0);
-  const query = useQuery({
-    queryKey: ["my-reservations", "history", page],
-    queryFn: () => getApiBottlesReservationsApplicationsMe({ page, size: 20 }),
+  const query = useInfiniteFeed({
+    queryKey: ["my-reservations", "history"],
+    queryFn: async (page) =>
+      (await getApiBottlesReservationsApplicationsMe({ page, size: 20 })).data,
   });
   return (
-    <View style={{ gap: 16 }}>
-      <Heading>내 예약 신청</Heading>
-      <Message error={query.error} />
-      {query.isLoading ? <Loading /> : null}
-      {query.data?.data.content?.map((item) => (
-        <View key={item.id} style={styles.section}>
+    <InfiniteList
+      title="내 예약 신청"
+      {...query.feed}
+      renderItem={(item) => (
+        <>
           <NavLink href={`/my-page/reservations/${item.id}`}>
             {item.noticeName ?? item.bottleName}
           </NavLink>
@@ -352,23 +350,9 @@ function MyReservations() {
           <Label muted>
             {item.pickupBusinessName} · {item.pickupAddress}
           </Label>
-        </View>
-      ))}
-      <View style={styles.row}>
-        <Action
-          secondary
-          title="이전"
-          disabled={page === 0}
-          onPress={() => setPage(page - 1)}
-        />
-        <Action
-          secondary
-          title="다음"
-          disabled={page + 1 >= (query.data?.data.page?.totalPages ?? 0)}
-          onPress={() => setPage(page + 1)}
-        />
-      </View>
-    </View>
+        </>
+      )}
+    />
   );
 }
 function BusinessSection() {
@@ -492,24 +476,17 @@ function BusinessSection() {
   );
 }
 export function InquiriesScreen() {
-  const [page, setPage] = useState(0);
   const { signedIn } = useSession();
-  const query = useQuery({
-    queryKey: ["inquiries", page],
-    queryFn: () => getApiInquiries({ page, size: 20 }),
+  const query = useInfiniteFeed({
+    queryKey: ["inquiries"],
+    queryFn: async (page) => (await getApiInquiries({ page, size: 20 })).data,
     enabled: signedIn,
   });
   return (
     <RequireAuth>
-      <PagedList
+      <InfiniteList
         title="1:1 문의"
-        items={query.data?.data.content ?? []}
-        page={page}
-        onPage={setPage}
-        hasNext={page + 1 < (query.data?.data.page?.totalPages ?? 0)}
-        loading={query.isFetching}
-        error={query.error}
-        refresh={() => void query.refetch()}
+        {...query.feed}
         header={<NavLink href="/my-page/inquiries/new">문의 작성</NavLink>}
         renderItem={(item) => (
           <>

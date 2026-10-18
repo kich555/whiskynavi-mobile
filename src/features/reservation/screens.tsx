@@ -1,9 +1,17 @@
+import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { PageHero } from "@/components/native/brand";
 import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+  type Href,
+} from "expo-router";
+import { useCallback, useState } from "react";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { ArrowLeft } from "lucide-react-native";
 import {
   getApiBottlesReservationsNotices,
   getApiBottlesReservationsNoticesRecentEnded,
@@ -13,6 +21,7 @@ import {
   getApiBusinessesBusinessidBottlesReservationsApplications,
   getApiUsersBusinessesMe,
   getApiUsersBusinessesPickupLocations,
+  type UserBottleReservationNoticePublicResponse,
   postApiBottlesReservationsNoticesNoticeidApplications,
   putApiBottlesReservationsApplicationsApplicationid,
   deleteApiBottlesReservationsApplicationsApplicationid,
@@ -22,34 +31,44 @@ import {
 } from "@/apis/generated/api";
 import {
   Action,
+  Sheet,
+  SurfaceLink,
+  colors,
   Gallery,
+  Photo,
   Heading,
   Label,
   Loading,
   Message,
   NavLink,
-  PagedList,
-  Photo,
+  InfiniteList,
   Quantity,
   RequireAuth,
   Screen,
   confirmAction,
-  date,
   money,
   styles,
   useTask,
 } from "@/components/native/ui";
 import { RichContent } from "@/components/native/rich-content";
 import { useSession } from "@/lib/providers";
-import { formatReservationRole, getNoticeStatus } from "./policy";
+import {
+  buildInfoItems,
+  calculateTimeRemaining,
+  formatReservationRole,
+  getNoticeStatus,
+  type NoticeStatus,
+} from "./policy";
 
 export function ReservationsScreen() {
   const { signedIn } = useSession();
-  const [page, setPage] = useState(0);
-  const query = useQuery({
-    queryKey: ["reservation-notices", page],
+  const { fontScale } = useWindowDimensions();
+  const [loginOpen, setLoginOpen] = useState(true);
+  const query = useInfiniteFeed({
+    queryKey: ["reservation-notices"],
     enabled: signedIn,
-    queryFn: () => getApiBottlesReservationsNotices({ page, size: 20 }),
+    queryFn: async (page) =>
+      (await getApiBottlesReservationsNotices({ page, size: 20 })).data,
   });
   const recent = useQuery({
     queryKey: ["reservation-ended"],
@@ -63,71 +82,294 @@ export function ReservationsScreen() {
           title="예약하기"
           subtitle="위스키내비의 신규 출시 제품을 예약하세요."
         />
-        <View
-          style={{
-            padding: 32,
-            paddingVertical: 64,
-            gap: 16,
-            borderWidth: 1,
-            borderColor: "#ffffff1a",
-            alignItems: "center",
-          }}
-        >
-          <Heading>로그인이 필요한 서비스입니다</Heading>
-          <Label muted>예약 서비스를 이용하시려면 로그인해 주세요.</Label>
+        <View style={reservationStyles.guest}>
+          <Text
+            style={[
+              styles.text,
+              {
+                fontSize: 18,
+                lineHeight: 26,
+                color: colors.muted,
+                textAlign: "center",
+              },
+            ]}
+          >
+            로그인이 필요한 서비스입니다
+          </Text>
+          <Text style={[styles.muted, { textAlign: "center" }]}>
+            예약 서비스를 이용하시려면 로그인해 주세요.
+          </Text>
           <NavLink href="/sign-in?callbackUrl=%2Freservation">
-            로그인하고 계속하기
+            로그인하기
           </NavLink>
         </View>
+        <Sheet
+          visible={loginOpen}
+          title="로그인이 필요합니다"
+          onDismiss={() => setLoginOpen(false)}
+        >
+          <Label muted>예약 서비스를 이용하시려면 로그인이 필요합니다.</Label>
+          <Action
+            title="로그인하기"
+            onPress={() => {
+              setLoginOpen(false);
+              router.push("/sign-in?callbackUrl=%2Freservation" as Href);
+            }}
+          />
+          <Action title="취소" secondary onPress={() => setLoginOpen(false)} />
+        </Sheet>
       </Screen>
     );
   return (
-    <PagedList
+    <InfiniteList
       intro={
         <PageHero
           title="예약하기"
           subtitle="위스키내비의 신규 출시 제품을 예약하세요."
         />
       }
+      rowGap={0}
+      endText=""
       title="위스키 예약"
-      page={page}
-      onPage={setPage}
-      hasNext={page + 1 < (query.data?.data.page?.totalPages ?? 0)}
-      items={query.data?.data.content ?? []}
-      loading={query.isFetching}
-      error={query.error}
-      refresh={() => void query.refetch()}
+      {...query.feed}
+      columns={fontScale > 1.3 ? 1 : 2}
+      columnGap={20}
       header={
-        <View style={{ gap: 12 }}>
-          <NavLink href="/my-page?tab=reservations">내 예약 확인</NavLink>
+        <View style={{ paddingTop: 28, paddingBottom: 8 }}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.heading, { fontSize: 20 }]}
+          >
+            현재 진행 중인 예약
+          </Text>
+        </View>
+      }
+      footer={
+        <View style={{ gap: 16, marginTop: 24 }}>
+          <Message error={recent.error} />
+          {recent.error ? (
+            <Action
+              secondary
+              title="종료된 예약 다시 불러오기"
+              onPress={() => {
+                void recent.refetch();
+              }}
+            />
+          ) : null}
           {recent.data?.data.length ? (
             <>
-              <Heading>최근 종료된 예약</Heading>
-              {recent.data.data.map((item) => (
-                <NavLink key={item.id} href={`/reservation/${item.id}`}>
-                  {item.noticeName}
-                </NavLink>
-              ))}
+              <Heading>종료된 예약</Heading>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 20 }}>
+                {recent.data.data.map((item) => (
+                  <View
+                    key={item.id}
+                    style={{ width: fontScale > 1.3 ? "100%" : "47%" }}
+                  >
+                    <ReservationCard notice={item} ended />
+                  </View>
+                ))}
+              </View>
             </>
           ) : null}
         </View>
       }
-      renderItem={(notice) => (
-        <>
-          <Photo
-            uri={notice.bottleImgUrl}
-            label={notice.bottleName ?? "예약 위스키"}
-          />
-          <NavLink href={`/reservation/${notice.id}`}>
-            {notice.noticeName ?? notice.bottleName}
-          </NavLink>
-          <Label muted>
-            {date(notice.reservationStartAt)} ~ {date(notice.reservationEndAt)}
-          </Label>
-          <Label>{money(notice.price)}</Label>
-        </>
-      )}
+      renderItem={(notice) => <ReservationCard notice={notice} />}
     />
+  );
+}
+const reservationStyles = StyleSheet.create({
+  guest: {
+    padding: 16,
+    paddingVertical: 64,
+    marginTop: 28,
+    minHeight: 220,
+    gap: 16,
+    backgroundColor: "#ffffff0d",
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 10,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  brand: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.muted,
+  },
+  name: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  badgeText: {
+    fontFamily: "NaviSansMedium",
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.text,
+  },
+  detail: {
+    padding: 16,
+    gap: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#ffffff0d",
+  },
+  info: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  timer: { padding: 12, borderWidth: 1, gap: 8 },
+});
+const statusAppearance = {
+  pending: { label: "예약 대기 중", color: "#ea580c", tint: "#fb923c" },
+  active: { label: "진행 중", color: "#2563eb", tint: "#60a5fa" },
+  applied: { label: "예약신청완료", color: "#16a34a", tint: "#86efac" },
+  closed: { label: "종료", color: "#4b5563", tint: colors.muted },
+};
+function StatusBadge({ status }: { status: NoticeStatus }) {
+  const appearance = statusAppearance[status];
+  return (
+    <View
+      style={[reservationStyles.badge, { backgroundColor: appearance.color }]}
+    >
+      <Text style={reservationStyles.badgeText}>{appearance.label}</Text>
+    </View>
+  );
+}
+function reservationDate(value?: string) {
+  return value?.slice(0, 16).replace("T", " ") ?? "-";
+}
+function ReservationCard({
+  notice,
+  ended = false,
+}: {
+  notice: UserBottleReservationNoticePublicResponse;
+  ended?: boolean;
+}) {
+  const status = ended
+    ? "closed"
+    : getNoticeStatus({
+        ...notice,
+        reservationStartAt:
+          notice.earliestReservableAt ?? notice.reservationStartAt,
+      });
+  return (
+    <SurfaceLink
+      href={`/reservation/${notice.id}`}
+      testID={`reservation-card-${notice.id}`}
+      style={reservationStyles.card}
+    >
+      <View style={{ aspectRatio: 1, padding: 12 }}>
+        <Photo
+          uri={notice.bottleImgUrl}
+          label={notice.bottleName ?? "예약 보틀"}
+        />
+      </View>
+      <View style={[styles.row, { gap: 8, justifyContent: "space-between" }]}>
+        <Text style={reservationStyles.brand}>{notice.bottleBrand ?? "-"}</Text>
+        <StatusBadge status={status} />
+      </View>
+      <Text style={reservationStyles.name}>{notice.noticeName ?? "-"}</Text>
+      <Text style={reservationStyles.brand}>{notice.bottleName ?? "-"}</Text>
+      <View style={[styles.row, { gap: 4, justifyContent: "space-between" }]}>
+        {notice.price != null ? (
+          <Text style={reservationStyles.brand}>{money(notice.price)}</Text>
+        ) : null}
+        {!ended && notice.availableQuantity != null ? (
+          <Text style={reservationStyles.brand}>
+            {notice.availableQuantity}병
+          </Text>
+        ) : null}
+      </View>
+      <Text
+        style={[
+          reservationStyles.brand,
+          { color: ended ? colors.muted : "#60a5fa" },
+        ]}
+      >
+        {ended ? "종료" : "마감"}: {reservationDate(notice.reservationEndAt)}
+      </Text>
+    </SurfaceLink>
+  );
+}
+function useReservationClock() {
+  const [now, setNow] = useState(() => Date.now());
+  useFocusEffect(
+    useCallback(() => {
+      setNow(Date.now());
+      const timer = setInterval(() => setNow(Date.now()), 1000);
+      return () => clearInterval(timer);
+    }, []),
+  );
+  return now;
+}
+function ReservationTimer({
+  notice,
+  status,
+  now,
+}: {
+  notice: UserBottleReservationNoticePublicResponse;
+  status: NoticeStatus;
+  now: number;
+}) {
+  const target =
+    status === "pending"
+      ? (notice.earliestReservableAt ?? notice.reservationStartAt)
+      : notice.reservationEndAt;
+  const color = statusAppearance[status];
+  const targetDate = target
+    ? new Date(
+        /(Z|[+-]\d{2}:?\d{2})$/.test(target) ? target : `${target}+09:00`,
+      )
+    : null;
+  return (
+    <View
+      testID="reservation-timer"
+      style={[
+        reservationStyles.timer,
+        {
+          backgroundColor: `${color.color}25`,
+          borderColor: `${color.color}65`,
+        },
+      ]}
+    >
+      <Text
+        style={[styles.text, { color: color.tint, fontFamily: "NaviSansBold" }]}
+      >
+        {status === "active"
+          ? "예약 마감"
+          : status === "pending"
+            ? "예약 시작"
+            : color.label}
+      </Text>
+      <Text style={[reservationStyles.brand, { color: color.tint }]}>
+        {reservationDate(target)}
+      </Text>
+      {(status === "active" || status === "pending") && targetDate ? (
+        <Text style={[styles.heading, { textAlign: "right", fontSize: 18 }]}>
+          {calculateTimeRemaining(targetDate, now)}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 export function ReservationScreen({ related = false }: { related?: boolean }) {
@@ -146,6 +388,8 @@ function ReservationContent({ related }: { related: boolean }) {
   const valid = Number.isSafeInteger(id) && id > 0;
   const [quantity, setQuantity] = useState(1);
   const [pickup, setPickup] = useState<number>();
+  const [pickupOpen, setPickupOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [selectedBusiness, setBusinessId] = useState<number>();
   const task = useTask();
   const client = useQueryClient();
@@ -213,7 +457,20 @@ function ReservationContent({ related }: { related: boolean }) {
       application.status !== "REJECTED",
   );
   const max = notice?.maxOrderQuantity ?? 100;
-  const active = notice && getNoticeStatus(notice) === "active";
+  const now = useReservationClock();
+  const status = notice
+    ? getNoticeStatus(
+        {
+          ...notice,
+          reservationStartAt:
+            ("earliestReservableAt" in notice
+              ? notice.earliestReservableAt
+              : undefined) ?? notice.reservationStartAt,
+        },
+        now,
+      )
+    : "pending";
+  const active = status === "active";
   const refresh = async () => {
     await Promise.all([
       client.invalidateQueries({ queryKey: ["my-reservations"] }),
@@ -232,11 +489,7 @@ function ReservationContent({ related }: { related: boolean }) {
       throw new Error("최대 신청 수량을 초과했습니다.");
   };
   return (
-    <Screen
-      title={notice?.noticeName ?? "예약 상세"}
-      refresh={() => void query.refetch()}
-      refreshing={query.isFetching}
-    >
+    <Screen refresh={() => void query.refetch()} refreshing={query.isFetching}>
       <Message
         error={
           !valid
@@ -246,26 +499,86 @@ function ReservationContent({ related }: { related: boolean }) {
       />
       {query.isLoading ? <Loading /> : null}
       {notice ? (
-        <>
-          <Gallery
-            images={[notice.bottleImgUrl, ...(notice.imageUrls ?? [])]}
-            label={notice.bottleName ?? "예약 위스키"}
+        <SurfaceLink
+          href="/reservation"
+          style={[styles.row, { marginTop: 16, gap: 8 }]}
+        >
+          <ArrowLeft size={18} color={colors.muted} />
+          <Text
+            style={[
+              styles.text,
+              { color: colors.muted, fontFamily: "NaviSansBold" },
+            ]}
+          >
+            목록으로 돌아가기
+          </Text>
+        </SurfaceLink>
+      ) : null}
+      {notice ? (
+        <View testID="reservation-detail" style={reservationStyles.detail}>
+          <View>
+            <Gallery
+              images={[notice.bottleImgUrl, ...(notice.imageUrls ?? [])]}
+              label={notice.bottleName ?? "예약 위스키"}
+              empty={
+                <LinearGradient
+                  colors={["#4b4b4b", "#333333"]}
+                  style={{ aspectRatio: 1 }}
+                />
+              }
+              surface="#303b4b"
+              imagePadding={24}
+            />
+            <View style={{ position: "absolute", top: 8, right: 8 }}>
+              <StatusBadge status={existing ? "applied" : status} />
+            </View>
+          </View>
+          <View style={{ gap: 16 }}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.heading, { fontSize: 20, lineHeight: 28 }]}
+            >
+              {notice.noticeName ?? "예약 상세"}
+            </Text>
+            <Label muted>{notice.bottleName}</Label>
+            <View style={{ gap: 8 }}>
+              {buildInfoItems(notice, {
+                hideAvailableQuantity: status === "closed",
+                hasBusinessRole: Boolean(businessId),
+              }).map((item) => (
+                <View key={item.label} style={reservationStyles.info}>
+                  <Label muted>{item.label}</Label>
+                  <Label>{item.value}</Label>
+                </View>
+              ))}
+              {notice.gradeConditions?.length ? (
+                <View
+                  style={{
+                    gap: 8,
+                    paddingBottom: 8,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.line,
+                  }}
+                >
+                  <Label muted>예약 조건</Label>
+                  {notice.gradeConditions.map((condition, i) => (
+                    <Text
+                      key={i}
+                      style={[reservationStyles.brand, { color: "#d1d5db" }]}
+                    >
+                      {formatReservationRole(condition.requiredRole)} ·{" "}
+                      {reservationDate(condition.applicableFrom)}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          </View>
+          <ReservationTimer
+            notice={notice}
+            status={existing ? "applied" : status}
+            now={now}
           />
-          <Heading>{notice.bottleName}</Heading>
-          <Label>{money(notice.price)}</Label>
-          {notice.supplyPrice != null ? (
-            <Label>공급가 {money(notice.supplyPrice)}</Label>
-          ) : null}
-          <Label muted>
-            {date(notice.reservationStartAt)} ~ {date(notice.reservationEndAt)}
-          </Label>
-          <RichContent html={notice.description} />
-          {notice.gradeConditions?.map((condition, i) => (
-            <Label key={i} muted>
-              {formatReservationRole(condition.requiredRole)} ·{" "}
-              {date(condition.applicableFrom)}
-            </Label>
-          ))}
           {related ? (
             <Label>예약 신청 이력으로 조회한 읽기 전용 공고입니다.</Label>
           ) : (
@@ -273,37 +586,75 @@ function ReservationContent({ related }: { related: boolean }) {
               <Message
                 error={businesses.error ?? locations.error ?? mine.error}
               />
-              <Heading>신청 유형</Heading>
-              {!businesses.data?.data.length ? <Label>개인 예약</Label> : null}
-              {businesses.data?.data.map((business) => (
-                <Action
-                  key={business.businessId}
-                  secondary={businessId !== business.businessId}
-                  title={`${business.businessName} 사업장으로 신청`}
-                  onPress={() => {
-                    setBusinessId(business.businessId);
-                    setPickup(undefined);
-                  }}
-                />
-              ))}
-              {!businessId ? (
+              {(!existing || editing) && active ? (
                 <>
-                  <Heading>픽업 업장</Heading>
-                  {locations.data?.map((location) => (
+                  {businesses.data?.data.length ? (
+                    <Heading>신청 유형</Heading>
+                  ) : null}
+                  {businesses.data?.data.map((business) => (
                     <Action
-                      key={location.id}
-                      secondary={pickup !== location.id}
-                      title={`${location.businessName} · ${location.pickupAddress}`}
-                      onPress={() => setPickup(location.id)}
+                      key={business.businessId}
+                      secondary={businessId !== business.businessId}
+                      title={`${business.businessName} 사업장으로 신청`}
+                      onPress={() => {
+                        setBusinessId(business.businessId);
+                        setPickup(undefined);
+                      }}
                     />
                   ))}
+                  {!businessId ? (
+                    <>
+                      <Heading>픽업 업장</Heading>
+                      <Action
+                        secondary
+                        title={
+                          locations.data?.find(
+                            (location) => location.id === pickup,
+                          )?.businessName ?? "픽업 업장 선택"
+                        }
+                        onPress={() => setPickupOpen(true)}
+                      />
+                      {pickup ? (
+                        <Label muted>
+                          {
+                            locations.data?.find(
+                              (location) => location.id === pickup,
+                            )?.pickupAddress
+                          }
+                        </Label>
+                      ) : null}
+                      <Sheet
+                        visible={pickupOpen}
+                        title="픽업 업장 선택"
+                        onDismiss={() => setPickupOpen(false)}
+                      >
+                        <Message error={locations.error} />
+                        {locations.isPending ? <Loading /> : null}
+                        {locations.data?.map((location) => (
+                          <Action
+                            key={location.id}
+                            secondary={pickup !== location.id}
+                            title={`${location.businessName} · ${location.pickupAddress}`}
+                            onPress={() => {
+                              setPickup(location.id);
+                              setPickupOpen(false);
+                            }}
+                          />
+                        ))}
+                        {!locations.isPending && !locations.data?.length ? (
+                          <Label muted>선택 가능한 픽업 업장이 없습니다.</Label>
+                        ) : null}
+                      </Sheet>
+                    </>
+                  ) : (
+                    <Label muted>
+                      픽업 업장은 관리자 배정 또는 신청 사업장 기준으로
+                      적용됩니다.
+                    </Label>
+                  )}
+                  <Quantity value={quantity} onChange={setQuantity} max={max} />
                 </>
-              ) : (
-                <Label muted>
-                  픽업 업장은 관리자 배정 또는 신청 사업장 기준으로 적용됩니다.
-                </Label>
-              )}
-              <Quantity value={quantity} onChange={setQuantity} max={max} />
+              ) : null}
               {existing ? (
                 <View style={styles.section}>
                   <Label>
@@ -313,29 +664,50 @@ function ReservationContent({ related }: { related: boolean }) {
                   <Label muted>
                     {existing.pickupBusinessName} · {existing.pickupAddress}
                   </Label>
-                  <Action
-                    title="예약 정보 수정"
-                    disabled={
-                      task.pending || !active || (!businessId && !pickup)
-                    }
-                    onPress={() =>
-                      void task.run(async () => {
-                        await checkWindow();
-                        if (businessId)
-                          await putApiBusinessesBusinessidBottlesReservationsApplicationsApplicationid(
-                            businessId,
-                            existing.id!,
-                            { quantity },
-                          );
-                        else
-                          await putApiBottlesReservationsApplicationsApplicationid(
-                            existing.id!,
-                            { quantity, userBusinessId: pickup! },
-                          );
-                        await refresh();
-                      })
-                    }
-                  />
+                  {editing ? (
+                    <>
+                      <Action
+                        title="변경사항 저장"
+                        disabled={
+                          task.pending || !active || (!businessId && !pickup)
+                        }
+                        onPress={() =>
+                          void task.run(async () => {
+                            await checkWindow();
+                            if (businessId)
+                              await putApiBusinessesBusinessidBottlesReservationsApplicationsApplicationid(
+                                businessId,
+                                existing.id!,
+                                { quantity },
+                              );
+                            else
+                              await putApiBottlesReservationsApplicationsApplicationid(
+                                existing.id!,
+                                { quantity, userBusinessId: pickup! },
+                              );
+                            await refresh();
+                            setEditing(false);
+                          })
+                        }
+                      />
+                      <Action
+                        secondary
+                        title="수정 닫기"
+                        onPress={() => setEditing(false)}
+                      />
+                    </>
+                  ) : (
+                    <Action
+                      secondary
+                      title="예약 정보 수정"
+                      disabled={task.pending || !active}
+                      onPress={() => {
+                        setQuantity(existing.quantity ?? 1);
+                        setPickup(existing.pickupUserBusinessId);
+                        setEditing(true);
+                      }}
+                    />
+                  )}
                   <Action
                     secondary
                     title="예약 취소"
@@ -389,7 +761,19 @@ function ReservationContent({ related }: { related: boolean }) {
               )}
             </>
           )}
-        </>
+          {notice.description ? (
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: colors.line,
+                paddingTop: 16,
+              }}
+            >
+              <Heading>상세 안내</Heading>
+              <RichContent html={notice.description} />
+            </View>
+          ) : null}
+        </View>
       ) : null}
       <NavLink href="/reservation">예약 목록</NavLink>
     </Screen>

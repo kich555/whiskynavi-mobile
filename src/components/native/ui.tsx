@@ -6,6 +6,7 @@ import { Link, router, type Href, usePathname } from "expo-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  useWindowDimensions,
   ActivityIndicator,
   Alert,
   FlatList,
@@ -20,6 +21,8 @@ import {
   TextInput,
   View,
   type TextInputProps,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "@/lib/providers";
@@ -223,6 +226,50 @@ export function NavLink({
   return (
     <Link href={href as Href} style={styles.link} onPress={onPress}>
       {children}
+    </Link>
+  );
+}
+// Flatten styles before the Expo Router slot merges them on web and native.
+export function SurfaceLink({
+  href,
+  children,
+  style,
+  testID,
+  accessibilityLabel,
+}: {
+  href: string;
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  accessibilityLabel?: string;
+}) {
+  const [pressed, setPressed] = useState(false);
+  const [focused, setFocused] = useState(false);
+  return (
+    <Link href={href as Href} asChild>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={accessibilityLabel}
+        testID={testID}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          minHeight: 48,
+          ...StyleSheet.flatten(style),
+          opacity: pressed ? 0.72 : 1,
+          ...(focused
+            ? {
+                outlineColor: material.focus,
+                outlineWidth: 2,
+                outlineStyle: "solid" as const,
+              }
+            : {}),
+        }}
+      >
+        {children}
+      </Pressable>
     </Link>
   );
 }
@@ -501,10 +548,18 @@ export function Message({ error }: { error: unknown }) {
     </Text>
   ) : null;
 }
-export function Photo({ uri, label }: { uri?: string; label: string }) {
+export function Photo({
+  uri,
+  label,
+  backgroundColor = colors.background,
+}: {
+  uri?: string;
+  label: string;
+  backgroundColor?: string;
+}) {
   const [failedUri, setFailedUri] = useState<string>();
   return (
-    <View style={styles.image}>
+    <View style={[styles.image, { backgroundColor }]}>
       {!uri || failedUri === uri ? (
         <View
           accessibilityLabel={`${label} 이미지 없음`}
@@ -534,9 +589,15 @@ export function Photo({ uri, label }: { uri?: string; label: string }) {
 export function Gallery({
   images,
   label,
+  surface = colors.background,
+  imagePadding = 16,
+  empty,
 }: {
   images: (string | undefined)[];
   label: string;
+  surface?: string;
+  imagePadding?: number;
+  empty?: ReactNode;
 }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
@@ -565,17 +626,17 @@ export function Gallery({
             key={uri}
             style={{
               width: width || 300,
-              padding: 16,
+              padding: imagePadding,
               borderWidth: 1,
               borderColor: colors.line,
-              backgroundColor: colors.background,
+              backgroundColor: surface,
             }}
           >
-            <Photo uri={uri} label={label} />
+            <Photo uri={uri} label={label} backgroundColor="transparent" />
           </View>
         ))}
       </ScrollView>
-      {unique.length === 0 ? <Photo label={label} /> : null}
+      {unique.length === 0 ? (empty ?? <Photo label={label} />) : null}
       {unique.length > 1 ? (
         <View style={[styles.row, { justifyContent: "space-between" }]}>
           <Action
@@ -722,12 +783,10 @@ export function confirmAction(
     { text: "확인", style: "destructive", onPress: action },
   ]);
 }
-export function PagedList<T>({
+export function InfiniteList<T extends { id?: number }>({
   title,
   items,
   renderItem,
-  page,
-  onPage,
   hasNext,
   header,
   loading,
@@ -735,39 +794,65 @@ export function PagedList<T>({
   refresh,
   columns = 1,
   columnGap = 12,
+  rowGap,
   intro,
+  loadMore,
+  loadingMore = false,
+  refreshing = false,
+  nextError,
+  compact = false,
+  footer,
+  emptyText = "표시할 항목이 없습니다.",
+  endText = "모두 확인했어요",
 }: {
   intro?: ReactNode;
+  footer?: ReactNode;
+  emptyText?: string;
+  endText?: string;
   columnGap?: number;
+  rowGap?: number;
   columns?: number;
   title: string;
   items: T[];
   renderItem: (item: T) => ReactNode;
-  page: number;
-  onPage: (page: number) => void;
   hasNext: boolean;
   header?: ReactNode;
   loading: boolean;
   error: unknown;
   refresh: () => void;
+  loadMore: () => void;
+  loadingMore?: boolean;
+  refreshing?: boolean;
+  nextError?: unknown;
+  compact?: boolean;
 }) {
+  const { width } = useWindowDimensions();
   return (
     <SafeAreaView edges={["bottom", "left", "right"]} style={styles.screen}>
       <FlatList
         key={columns}
+        testID="infinite-list"
         numColumns={columns}
         columnWrapperStyle={columns > 1 ? { gap: columnGap } : undefined}
         data={items}
-        keyExtractor={(_, i) => `${page}-${i}`}
+        keyExtractor={(item, i) =>
+          item.id != null ? String(item.id) : String(i)
+        }
         contentContainerStyle={[
           styles.content,
           intro ? { paddingTop: 0 } : null,
+          compact ? { gap: 0 } : null,
+          rowGap != null ? { gap: rowGap } : null,
         ]}
         keyboardShouldPersistTaps="handled"
-        refreshing={loading}
+        refreshing={refreshing}
         onRefresh={refresh}
+        onEndReached={() => {
+          if (!nextError) loadMore();
+        }}
+        onEndReachedThreshold={0.35}
         ListHeaderComponent={
-          <View style={{ gap: 16 }}>
+          <View style={{ gap: 16, paddingBottom: compact ? 12 : 0 }}>
             {intro ?? (
               <Text accessibilityRole="header" style={styles.title}>
                 {title}
@@ -775,16 +860,21 @@ export function PagedList<T>({
             )}
             {header}
             <Message error={error} />
+            {error && items.length ? (
+              <Action secondary title="목록 다시 불러오기" onPress={refresh} />
+            ) : null}
           </View>
         }
         renderItem={({ item }) => (
           <View
             style={[
-              styles.section,
+              compact ? undefined : styles.section,
               columns > 1
                 ? {
                     flex: 1,
-                    maxWidth: "48.4%",
+                    maxWidth:
+                      (Math.min(width, 760) - 32 - columnGap * (columns - 1)) /
+                      columns,
                     borderBottomWidth: 0,
                     paddingVertical: 0,
                     marginBottom: 12,
@@ -801,28 +891,31 @@ export function PagedList<T>({
             <Loading />
           ) : error ? (
             <Action title="다시 불러오기" onPress={refresh} />
-          ) : (
-            <Label muted>표시할 항목이 없습니다.</Label>
-          )
+          ) : emptyText ? (
+            <Label muted>{emptyText}</Label>
+          ) : null
         }
         ListFooterComponent={
-          page > 0 || hasNext ? (
-            <View style={styles.row}>
+          <View style={{ gap: 16, paddingTop: 16 }}>
+            <Message error={nextError} />
+            {loadingMore ? (
+              <Loading />
+            ) : hasNext ? (
               <Action
-                title="이전 페이지"
+                title={nextError ? "추가 목록 다시 불러오기" : "더 보기"}
                 secondary
-                disabled={page <= 0 || loading}
-                onPress={() => onPage(page - 1)}
+                onPress={loadMore}
               />
-              <Label>{page + 1} 페이지</Label>
-              <Action
-                title="다음 페이지"
-                secondary
-                disabled={!hasNext || loading}
-                onPress={() => onPage(page + 1)}
-              />
-            </View>
-          ) : null
+            ) : items.length && endText ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[styles.muted, { textAlign: "center", fontSize: 12 }]}
+              >
+                {endText}
+              </Text>
+            ) : null}
+            {footer}
+          </View>
         }
       />
     </SafeAreaView>

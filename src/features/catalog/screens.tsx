@@ -1,9 +1,17 @@
+import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { PageHero } from "@/components/native/brand";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react-native";
 import { randomUUID } from "expo-crypto";
 import { router, useLocalSearchParams } from "expo-router";
-import { useRef, useState } from "react";
-import { Pressable, Text, View, useWindowDimensions } from "react-native";
+import { useRef, useState, type ReactNode } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import {
   getApiV2GeneralProducts,
   getApiV2TicketProducts,
@@ -35,12 +43,14 @@ import {
   colors,
   Action,
   Field,
+  FilterChip,
+  SurfaceLink,
   Heading,
   Label,
   Loading,
   Message,
   NavLink,
-  PagedList,
+  InfiniteList,
   Photo,
   Quantity,
   RequireAuth,
@@ -72,24 +82,58 @@ export function canOrder(
     (!product.saleEndAt || Date.parse(product.saleEndAt) > Date.now())
   );
 }
-export function CatalogScreen({ channel }: { channel: Channel }) {
+export function ShopScreen() {
+  const [channel, setChannel] = useState<Channel>("general");
+  return (
+    <CatalogScreen
+      channel={channel}
+      navigation={
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+        >
+          {(["general", "ticket", "smart"] as const).map((key) => (
+            <FilterChip
+              key={key}
+              label={titles[key]}
+              selected={channel === key}
+              onPress={() => setChannel(key)}
+            />
+          ))}
+        </ScrollView>
+      }
+    />
+  );
+}
+export function CatalogScreen({
+  channel,
+  navigation,
+}: {
+  channel: Channel;
+  navigation?: ReactNode;
+}) {
   const { width, fontScale } = useWindowDimensions();
-  const [page, setPage] = useState(0);
-  const query = useQuery({
-    queryKey: ["catalog", channel, page],
-    queryFn: async () =>
+  const query = useInfiniteFeed({
+    queryKey: ["catalog", channel],
+    queryFn: async (page) =>
       (
         await (channel === "ticket"
-          ? getApiV2TicketProducts({ page, size: 20 })
+          ? getApiV2TicketProducts({ page, size: 20, sort: ["createdAt,desc"] })
           : channel === "smart"
             ? getApiV2SmartOrderProducts({ page, size: 20 })
-            : getApiV2GeneralProducts({ page, size: 20 }))
+            : getApiV2GeneralProducts({
+                page,
+                size: 20,
+                sort: ["createdAt,desc"],
+              }))
       ).data,
   });
   return (
-    <PagedList
+    <InfiniteList
       columns={width >= 375 && fontScale <= 1.3 ? 2 : 1}
       columnGap={20}
+      rowGap={0}
       title={titles[channel]}
       intro={
         <PageHero
@@ -103,118 +147,228 @@ export function CatalogScreen({ channel }: { channel: Channel }) {
           }
         />
       }
-      items={query.data?.content ?? []}
-      page={page}
-      onPage={setPage}
-      hasNext={page + 1 < (query.data?.page?.totalPages ?? 0)}
-      loading={query.isFetching}
-      error={query.error}
-      refresh={() => void query.refetch()}
+      {...query.feed}
       header={
-        <View style={{ gap: 16 }}>
+        <View style={{ gap: 16, paddingTop: 28, paddingBottom: 24 }}>
+          {navigation}
+          {channel === "smart" ? (
+            <View style={commerceStyles.notice}>
+              <Label>
+                19세 미만은 주류를 구매할 수 없습니다. 픽업 시 신분증을 지참해
+                주세요.
+              </Label>
+            </View>
+          ) : null}
           <Label muted>
-            판매중인 {titles[channel]} {query.data?.page?.totalElements ?? 0}건
+            판매중인 {titles[channel]} {query.total}건
           </Label>
           <View style={styles.row}>
             {channel === "general" ? (
-              <NavLink href="/general-items/cart">장바구니 보기</NavLink>
+              <SurfaceLink
+                href="/general-items/cart"
+                style={{
+                  paddingHorizontal: 16,
+                  minHeight: 44,
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: colors.line,
+                  borderRadius: 8,
+                }}
+              >
+                <Label>장바구니 보기</Label>
+              </SurfaceLink>
             ) : null}
             <NavLink href="/orders/guest">비회원 주문 조회</NavLink>
           </View>
         </View>
       }
-      renderItem={(product) => (
-        <View
-          testID={`product-card-${product.id}`}
-          style={{
-            borderWidth: 1,
-            borderColor: "#ffffff1a",
-            padding: 16,
-            gap: 16,
-            backgroundColor: "#ffffff0d",
-          }}
-        >
-          <Photo uri={product.imageUrl} label={product.name ?? "상품"} />
-          <View
+      renderItem={(product) =>
+        channel === "smart" ? (
+          <SurfaceLink
+            href={`${paths[channel]}/${product.id}`}
+            testID={`product-card-${product.id}`}
             style={{
-              gap: 8,
-              alignItems: "flex-start",
-              justifyContent: "space-between",
+              borderWidth: 1,
+              borderColor: colors.line,
+              borderRadius: 12,
+              overflow: "hidden",
+              backgroundColor: "#ffffff0d",
             }}
           >
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
+            <View
+              style={{
+                aspectRatio: 1,
+                backgroundColor: "#ffffff08",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              {product.imageUrl ? (
+                <Photo uri={product.imageUrl} label={product.name ?? "상품"} />
+              ) : (
+                <Label muted>상품 이미지 준비 중</Label>
+              )}
+            </View>
+            <View style={{ padding: 20, gap: 16 }}>
+              <Text style={[styles.text, { color: "#fcd34d", fontSize: 12 }]}>
+                {canOrder(product)
+                  ? "매장 픽업"
+                  : product.saleStatus === "SOLD_OUT"
+                    ? "품절"
+                    : "판매 기간 확인"}
+              </Text>
+              <Heading>{product.name}</Heading>
+              <Text style={[styles.heading, { fontSize: 20 }]}>
+                {money(product.salePrice)}
+              </Text>
+            </View>
+          </SurfaceLink>
+        ) : (
+          <View
+            testID={`product-card-${product.id}`}
+            style={commerceStyles.card}
+          >
+            <View
+              style={[
+                commerceStyles.image,
+                { padding: product.imageUrl ? 16 : 0 },
+              ]}
+            >
+              <Photo
+                uri={product.imageUrl}
+                label={product.name ?? "상품"}
+                backgroundColor="transparent"
+              />
+            </View>
+            <View style={{ gap: 10 }}>
+              <View
                 style={{
-                  ...styles.heading,
-                  fontSize: 16,
-                  lineHeight: 24,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  justifyContent: "space-between",
                 }}
+              >
+                {channel === "ticket" ? (
+                  <Text
+                    style={[styles.text, { fontSize: 12, color: "#fcd34d" }]}
+                  >
+                    이용권 · 배송 없음
+                  </Text>
+                ) : null}
+                <SaleBadge available={(product.availableQuantity ?? 0) > 0} />
+              </View>
+              <Text
+                style={[
+                  styles.heading,
+                  {
+                    fontSize: width >= 375 && fontScale <= 1.3 ? 16 : 20,
+                    lineHeight: width >= 375 && fontScale <= 1.3 ? 22 : 28,
+                  },
+                ]}
               >
                 {product.name}
               </Text>
             </View>
-            <Text
+            <View
               style={{
-                fontFamily: "NaviSansMedium",
-                fontSize: 12,
-                lineHeight: 14,
-                minWidth: 44,
-                flexShrink: 0,
-                textAlign: "center",
-                color: "white",
-                paddingVertical: 4,
-                paddingHorizontal: 6,
-                borderRadius: 12,
-                backgroundColor:
-                  (product.availableQuantity ?? 0) > 0
-                    ? colors.available
-                    : "#4b5563",
+                borderTopWidth: 1,
+                borderTopColor: colors.line,
+                paddingTop: 16,
+                gap: 8,
               }}
             >
-              {(product.availableQuantity ?? 0) > 0 ? "판매중" : "품절"}
-            </Text>
+              <Text style={[styles.heading, { fontSize: 20 }]}>
+                {money(product.salePrice)}
+              </Text>
+              <Label muted>
+                {product.availableQuantity ?? 0} / {product.totalQuantity ?? 0}
+                개 남음
+              </Label>
+            </View>
+            {(product.availableQuantity ?? 0) > 0 ? (
+              <SurfaceLink
+                href={`${paths[channel]}/${product.id}`}
+                accessibilityLabel={`${product.name} 상세보기`}
+                style={commerceStyles.detailLink}
+              >
+                <Text style={styles.text}>상세보기</Text>
+              </SurfaceLink>
+            ) : (
+              <View
+                style={[
+                  commerceStyles.detailLink,
+                  {
+                    backgroundColor: "transparent",
+                    borderWidth: 1,
+                    borderColor: colors.line,
+                  },
+                ]}
+              >
+                <Label muted>주문 불가</Label>
+              </View>
+            )}
           </View>
-          <View
-            style={{
-              paddingTop: 16,
-              borderTopWidth: 1,
-              borderColor: "#ffffff1a",
-              gap: 8,
-            }}
-          >
-            <Text style={{ ...styles.heading, fontSize: 20 }}>
-              {money(product.salePrice)}
-            </Text>
-            <Label muted>
-              {product.availableQuantity ?? 0} / {product.totalQuantity ?? 0}개
-              남음
-            </Label>
-          </View>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={`${product.name} 상세보기`}
-            onPress={() =>
-              router.push(`${paths[channel]}/${product.id}` as never)
-            }
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.7 : 1,
-              minHeight: 48,
-              backgroundColor: colors.commerce,
-              borderRadius: 14,
-              borderCurve: "continuous",
-              borderWidth: 1,
-              borderTopColor: "#ffffff45",
-              borderColor: "#ffffff20",
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: 8,
-            })}
-          >
-            <Text style={{ ...styles.text, color: "white" }}>상세보기</Text>
-          </Pressable>
-        </View>
-      )}
+        )
+      }
     />
+  );
+}
+const commerceStyles = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 20,
+    gap: 20,
+    backgroundColor: "#ffffff0d",
+    marginBottom: 8,
+  },
+  image: { aspectRatio: 1, backgroundColor: "#00000033", padding: 16 },
+  productHeading: { flexDirection: "row", gap: 16, alignItems: "flex-start" },
+  detailLink: {
+    marginTop: 4,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: colors.commerce,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  order: {
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 24,
+    gap: 16,
+  },
+  notice: {
+    borderWidth: 1,
+    borderColor: "#f59e0b44",
+    backgroundColor: "#f59e0b10",
+    padding: 16,
+    borderRadius: 12,
+  },
+});
+function SaleBadge({ available }: { available: boolean }) {
+  return (
+    <View
+      style={{
+        alignSelf: "flex-start",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        backgroundColor: available ? colors.available : "#4b5563",
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: "NaviSansMedium",
+          fontSize: 12,
+          lineHeight: 16,
+          color: colors.text,
+        }}
+      >
+        {available ? "판매중" : "품절"}
+      </Text>
+    </View>
   );
 }
 export function ProductScreen({ channel }: { channel: Channel }) {
@@ -254,99 +408,139 @@ export function ProductScreen({ channel }: { channel: Channel }) {
     quantity <= limit &&
     (!options?.required || Boolean(optionId));
   return (
-    <Screen title={product?.name ?? "상품 상세"}>
+    <Screen>
+      <SurfaceLink href={paths[channel]} style={[styles.row, { gap: 8 }]}>
+        <ArrowLeft size={18} color={colors.muted} />
+        <Label muted>목록으로 돌아가기</Label>
+      </SurfaceLink>
       <Message error={query.error ?? task.error} />
       {query.isLoading ? <Loading /> : null}
       {product ? (
         <>
-          <Photo
-            uri={selected?.imageUrl ?? product.imageUrl}
-            label={product.name ?? "상품"}
-          />
-          <Label>
-            {money((product.salePrice ?? 0) + (selected?.additionalPrice ?? 0))}
-          </Label>
-          <RichContent html={product.description} />
-          {channel === "ticket" && "ticketValidFrom" in product ? (
-            <Label muted>
-              이용 기간: {date(product.ticketValidFrom)} ~{" "}
-              {date(product.ticketValidUntil)}
-            </Label>
-          ) : null}
-          <Label muted>
-            남은 수량 {product.availableQuantity}개 · 1회 최대{" "}
-            {product.maxOrderQuantity ?? product.availableQuantity}개
-          </Label>
-          {options ? (
-            <>
-              <Action
-                secondary
-                title={selected?.label ?? selected?.value ?? "옵션 선택"}
-                onPress={() => setOptionSheet(true)}
-              />
-              <Sheet
-                visible={optionSheet}
-                title="상품 옵션"
-                onDismiss={() => setOptionSheet(false)}
-              >
-                <Heading>{options.name ?? "옵션 선택"}</Heading>
-                {!options.required ? (
-                  <Action
-                    secondary={Boolean(optionId)}
-                    title="선택 안 함"
-                    onPress={() => setOptionId(undefined)}
-                  />
-                ) : null}
-                {options.values?.map((option) => (
-                  <Action
-                    key={option.id}
-                    title={`${option.label ?? option.value} (+${money(option.additionalPrice ?? 0)})`}
-                    secondary={option.id !== optionId}
-                    disabled={(option.availableQuantity ?? 0) < 1}
-                    onPress={() => {
-                      setOptionId(option.id);
-                      setQuantity(1);
-                      setOptionSheet(false);
-                    }}
-                  />
-                ))}
-              </Sheet>
-            </>
-          ) : null}
-          <Quantity value={quantity} onChange={setQuantity} max={limit} />
-          {channel === "general" ? (
-            <Action
-              title="장바구니 담기"
-              disabled={!permitted || task.pending}
-              onPress={() =>
-                void task.run(async () => {
-                  await getOrCreate();
-                  await postApiV2CartsItemsBatch({
-                    items: [{ generalProductId: id, quantity, optionId }],
-                  });
-                  await client.invalidateQueries({ queryKey: ["cart"] });
-                  router.push("/general-items/cart");
-                })
-              }
+          <View
+            style={[
+              commerceStyles.image,
+              {
+                padding: (selected?.imageUrl ?? product.imageUrl) ? 24 : 0,
+                borderWidth: 1,
+                borderColor: colors.line,
+              },
+            ]}
+          >
+            <Photo
+              uri={selected?.imageUrl ?? product.imageUrl}
+              label={product.name ?? "상품"}
+              backgroundColor="transparent"
             />
-          ) : null}
-          <Action
-            title={
-              permitted
-                ? channel === "smart"
-                  ? "픽업 주문하기"
-                  : "바로 주문하기"
-                : "현재 주문할 수 없습니다"
-            }
-            disabled={!permitted}
-            onPress={() =>
-              router.push(
-                (channel === "smart"
-                  ? `/smart-order/${id}/order?quantity=${quantity}`
-                  : `${channel === "ticket" ? "/ticket-products/order" : "/general-items/delivery-order"}?saleId=${id}&quantity=${quantity}${optionId ? `&optionId=${optionId}` : ""}`) as never,
-              )
-            }
-          />
+          </View>
+          <View style={commerceStyles.card}>
+            <View style={commerceStyles.productHeading}>
+              <Text
+                accessibilityRole="header"
+                style={[styles.title, { flex: 1, lineHeight: 32 }]}
+              >
+                {product.name}
+              </Text>
+              <SaleBadge available={(product.availableQuantity ?? 0) > 0} />
+            </View>
+            <Text style={[styles.heading, { fontSize: 24, lineHeight: 32 }]}>
+              {money(
+                (product.salePrice ?? 0) + (selected?.additionalPrice ?? 0),
+              )}
+            </Text>
+            <Label muted>
+              {product.availableQuantity ?? 0} / {product.totalQuantity ?? 0}개
+              남음
+            </Label>
+            {product.maxOrderQuantity ? (
+              <Label muted>
+                인당 구매 한도 {product.maxOrderQuantity}개 · 옵션과 이전 구매를
+                합산합니다.
+              </Label>
+            ) : null}
+            {channel === "ticket" && "ticketValidFrom" in product ? (
+              <Label muted>
+                이용 기간: {date(product.ticketValidFrom)} ~{" "}
+                {date(product.ticketValidUntil)}
+              </Label>
+            ) : null}
+            <View style={commerceStyles.order}>
+              {options ? (
+                <>
+                  <Action
+                    secondary
+                    title={selected?.label ?? selected?.value ?? "옵션 선택"}
+                    onPress={() => setOptionSheet(true)}
+                  />
+                  <Sheet
+                    visible={optionSheet}
+                    title="상품 옵션"
+                    onDismiss={() => setOptionSheet(false)}
+                  >
+                    <Heading>{options.name ?? "옵션 선택"}</Heading>
+                    {!options.required ? (
+                      <Action
+                        secondary={Boolean(optionId)}
+                        title="선택 안 함"
+                        onPress={() => setOptionId(undefined)}
+                      />
+                    ) : null}
+                    {options.values?.map((option) => (
+                      <Action
+                        key={option.id}
+                        title={`${option.label ?? option.value} (+${money(option.additionalPrice ?? 0)})`}
+                        secondary={option.id !== optionId}
+                        disabled={(option.availableQuantity ?? 0) < 1}
+                        onPress={() => {
+                          setOptionId(option.id);
+                          setQuantity(1);
+                          setOptionSheet(false);
+                        }}
+                      />
+                    ))}
+                  </Sheet>
+                </>
+              ) : null}
+              <Quantity value={quantity} onChange={setQuantity} max={limit} />
+              {channel === "general" ? (
+                <Action
+                  title="장바구니 담기"
+                  disabled={!permitted || task.pending}
+                  onPress={() =>
+                    void task.run(async () => {
+                      await getOrCreate();
+                      await postApiV2CartsItemsBatch({
+                        items: [{ generalProductId: id, quantity, optionId }],
+                      });
+                      await client.invalidateQueries({ queryKey: ["cart"] });
+                      router.push("/general-items/cart");
+                    })
+                  }
+                />
+              ) : null}
+              <Action
+                title={
+                  permitted
+                    ? channel === "smart"
+                      ? "픽업 주문하기"
+                      : "바로 주문하기"
+                    : "현재 주문할 수 없습니다"
+                }
+                disabled={!permitted}
+                onPress={() =>
+                  router.push(
+                    (channel === "smart"
+                      ? `/smart-order/${id}/order?quantity=${quantity}`
+                      : `${channel === "ticket" ? "/ticket-products/order" : "/general-items/delivery-order"}?saleId=${id}&quantity=${quantity}${optionId ? `&optionId=${optionId}` : ""}`) as never,
+                  )
+                }
+              />
+            </View>
+            <View style={commerceStyles.order}>
+              <Heading>{product.name}</Heading>
+              <RichContent html={product.description} />
+            </View>
+          </View>
           <NavLink href="/terms">판매·교환·환불 정책 확인</NavLink>
           {channel === "smart" ? (
             <Label>

@@ -1,3 +1,4 @@
+import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
@@ -28,7 +29,7 @@ import {
   Loading,
   Message,
   NavLink,
-  PagedList,
+  InfiniteList,
   RequireAuth,
   Screen,
   confirmAction,
@@ -47,29 +48,24 @@ import {
 } from "@/features/account/constants";
 
 export function OrdersList({ ticketOnly = false }: { ticketOnly?: boolean }) {
-  const [page, setPage] = useState(0);
   const { signedIn } = useSession();
-  const query = useQuery({
-    queryKey: ["orders", ticketOnly, page],
-    queryFn: () =>
-      getApiV2Orders({
-        page,
-        size: 20,
-        ticketOnly: ticketOnly ? true : undefined,
-      }),
+  const query = useInfiniteFeed({
+    queryKey: ["orders", ticketOnly],
+    queryFn: async (page) =>
+      (
+        await getApiV2Orders({
+          page,
+          size: 20,
+          ticketOnly: ticketOnly ? true : undefined,
+        })
+      ).data,
     enabled: signedIn,
   });
   return (
     <RequireAuth>
-      <PagedList
+      <InfiniteList
         title={ticketOnly ? "내 이용권 주문" : "주문 내역"}
-        page={page}
-        onPage={setPage}
-        hasNext={page + 1 < (query.data?.data.page?.totalPages ?? 0)}
-        items={query.data?.data.content ?? []}
-        loading={query.isFetching}
-        error={query.error}
-        refresh={() => void query.refetch()}
+        {...query.feed}
         renderItem={(order) => (
           <>
             <NavLink

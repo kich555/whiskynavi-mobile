@@ -1,3 +1,4 @@
+import { useInfiniteFeed } from "@/lib/infinite-feed";
 import {
   ChevronLeft,
   ChevronRight,
@@ -50,7 +51,7 @@ import {
   Loading,
   Message,
   NavLink,
-  PagedList,
+  InfiniteList,
   Screen,
   Sheet,
   go,
@@ -452,7 +453,6 @@ function ArchiveContent({
     brand: params.brand ? [params.brand] : undefined,
     series: params.series ? [params.series] : undefined,
   });
-  const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const filterRef = useRef<View>(null);
   const sortRef = useRef<View>(null);
@@ -460,12 +460,12 @@ function ArchiveContent({
   const resetFilters = () => {
     setFilters({});
     setDraft("");
-    setPage(0);
   };
   const [sortOpen, setSortOpen] = useState(false);
-  const query = useQuery({
-    queryKey: ["bottles", filters, page],
-    queryFn: () => getApiV2Bottles({ ...filters, page, size: 20 }),
+  const query = useInfiniteFeed({
+    queryKey: ["bottles", filters],
+    queryFn: async (page) =>
+      (await getApiV2Bottles({ ...filters, page, size: 20 })).data,
   });
   const parameters = useQuery({
     queryKey: ["bottle-parameters"],
@@ -473,10 +473,9 @@ function ArchiveContent({
   });
   const update = (next: Partial<GetApiV2BottlesParams>) => {
     setFilters({ ...filters, ...next });
-    setPage(0);
   };
   return (
-    <PagedList
+    <InfiniteList
       columns={fontScale > 1.3 ? 1 : 2}
       title="아카이브"
       intro={
@@ -485,13 +484,7 @@ function ArchiveContent({
           subtitle="위스키내비에서 발매한 모든 제품을 둘러보세요."
         />
       }
-      page={page}
-      onPage={setPage}
-      hasNext={page + 1 < (query.data?.data.page?.totalPages ?? 0)}
-      items={query.data?.data.content ?? []}
-      loading={query.isFetching}
-      error={query.error}
-      refresh={() => void query.refetch()}
+      {...query.feed}
       header={
         <View style={{ gap: 12 }}>
           <View
