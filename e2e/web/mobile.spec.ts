@@ -1028,27 +1028,37 @@ test("account overview groups history and settings without a wall of forms", asy
   await expect(
     page.getByText("위스키 테이스팅 글라스", { exact: false }).first(),
   ).toBeVisible();
-  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
   await page.getByRole("button", { name: "예약 내역", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "내 예약 신청", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "내 정보 수정", exact: false })
     .click();
   await expect(
     page.getByRole("textbox", { name: "닉네임", exact: true }),
   ).toHaveValue("모바일테스터");
-  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
   await page.getByRole("button", { name: "나의 멤버십", exact: false }).click();
   await expect(page.getByText("미가입", { exact: true }).first()).toBeVisible();
-  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
   await page.getByRole("button", { name: "사업자 등록", exact: false }).click();
   await expect(
     page.getByRole("heading", { name: "사업자 등록 신청", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "전체", exact: true }).click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
   await page.getByRole("link", { name: "1:1 문의", exact: true }).click();
   await expect(page).toHaveURL(/my-page\/inquiries$/);
 });
@@ -1095,4 +1105,465 @@ test("shopping cards prioritize thumbnails and purchase actions share one row", 
       .getByRole("button", { name: "바로 주문하기", exact: true })
       .boundingBox())!;
   expect(b.y).toBeGreaterThanOrEqual(a.y + a.height + 8);
+});
+
+async function holdApi(
+  page: Page,
+  path: string,
+  select: (route: Route) => boolean = () => true,
+) {
+  let resume!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    resume = resolve;
+  });
+  let failure: number | undefined;
+  const pending: Promise<void>[] = [];
+  const matcher = new RegExp(`^http://127\\.0\\.0\\.1:8787${path}(?:\\?|$)`);
+  const handler = (route: Route) => {
+    if (route.request().method() !== "GET" || !select(route))
+      return route.fallback();
+    const operation = (async () => {
+      await gate;
+      if (failure)
+        await route.fulfill({
+          status: failure,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "잠시 후 다시 시도해 주세요." }),
+        });
+      else await route.fallback();
+    })();
+    pending.push(operation);
+    return operation;
+  };
+  await page.route(matcher, handler);
+  return async (status?: number) => {
+    failure = status;
+    resume();
+    await Promise.all(pending);
+    failure = undefined;
+  };
+}
+
+for (const entry of [
+  {
+    name: "home banner",
+    path: "/",
+    api: "/api/banners",
+    variant: "hero",
+    ready: "위스키를 탐험하는 새로운 방법",
+  },
+  {
+    name: "archive grid",
+    path: "/archive",
+    api: "/api/2.0/bottles",
+    variant: "cards",
+    ready: "네이비 싱글캐스크 12",
+  },
+  {
+    name: "shop grid",
+    path: "/shop",
+    api: "/api/2.0/general-products",
+    variant: "cards",
+    ready: "위스키 테이스팅 글라스",
+  },
+  {
+    name: "tickets",
+    path: "/ticket-products",
+    api: "/api/2.0/ticket-products",
+    variant: "cards",
+    ready: "위스키 테이스팅 이용권",
+  },
+  {
+    name: "smart order",
+    path: "/smart-order",
+    api: "/api/2.0/smart-order-products",
+    variant: "cards",
+    ready: "매장 픽업 위스키",
+  },
+  {
+    name: "bottle detail",
+    path: "/archive/1",
+    api: "/api/bottles/1",
+    variant: "detail",
+    ready: "테이스팅 노트",
+  },
+  {
+    name: "product detail",
+    path: "/general-items/1",
+    api: "/api/2.0/general-products/1",
+    variant: "detail",
+    ready: "위스키 테이스팅 글라스",
+  },
+  {
+    name: "reservation grid",
+    path: "/reservation",
+    api: "/api/bottles/reservations/notices",
+    variant: "cards",
+    ready: "싱글캐스크 예약",
+    auth: true,
+  },
+  {
+    name: "reservation detail",
+    path: "/reservation/1",
+    api: "/api/bottles/reservations/notices/1",
+    variant: "detail",
+    ready: "싱글캐스크 예약",
+    auth: true,
+  },
+  {
+    name: "community",
+    path: "/board/community",
+    api: "/api/boards/community/posts",
+    variant: "rows",
+    ready: "첫 번째 위스키 이야기",
+  },
+  {
+    name: "post detail",
+    path: "/board/community/posts/1",
+    api: "/api/boards/community/posts/1",
+    variant: "article",
+    ready: "위스키를 함께 알아가는 공간입니다.",
+  },
+  {
+    name: "announcement",
+    path: "/board/news/announcements/80",
+    api: "/api/boards/news/announcements/80",
+    variant: "article",
+    ready: "위스키를 함께 알아가는 공간입니다.",
+  },
+  {
+    name: "post editor",
+    path: "/board/community/posts/1/edit",
+    api: "/api/boards/community/posts/1",
+    variant: "form",
+    ready: "게시글 수정",
+    auth: true,
+  },
+  {
+    name: "account",
+    path: "/my-page",
+    api: "/api/users/me",
+    variant: "account",
+    ready: "모바일테스터님",
+    auth: true,
+  },
+  {
+    name: "order history",
+    path: "/my-page?tab=orders",
+    api: "/api/2.0/orders",
+    variant: "rows",
+    ready: "위스키 테이스팅 글라스",
+    auth: true,
+  },
+  {
+    name: "reservation history",
+    path: "/my-page?tab=reservations",
+    api: "/api/bottles/reservations/applications/me",
+    variant: "rows",
+    ready: "싱글캐스크 예약",
+    auth: true,
+  },
+  {
+    name: "business",
+    path: "/my-page?tab=business",
+    api: "/api/users/businesses/applications/me/overview",
+    variant: "form",
+    ready: "사업장명",
+    auth: true,
+  },
+  {
+    name: "order detail",
+    path: "/my-page/order/1",
+    api: "/api/orders/1",
+    variant: "article",
+    ready: "주문번호 E2E-ORDER-1",
+    auth: true,
+  },
+  {
+    name: "inquiry list",
+    path: "/my-page/inquiries",
+    api: "/api/inquiries",
+    variant: "rows",
+    ready: "픽업 일정에 대해 문의드립니다",
+    auth: true,
+  },
+  {
+    name: "inquiry detail",
+    path: "/my-page/inquiries/1",
+    api: "/api/inquiries/1",
+    variant: "article",
+    ready: "픽업 가능한 시간을 알려주세요.",
+    auth: true,
+  },
+  {
+    name: "brand series",
+    path: "/brand",
+    api: "/api/bottles/brand-series",
+    variant: "rows",
+    ready: "네이비 싱글캐스크 12",
+  },
+  {
+    name: "checkout",
+    path: "/general-items/delivery-order?saleId=1",
+    api: "/api/2.0/general-products/1",
+    variant: "form",
+    ready: "주문자 이름",
+  },
+  {
+    name: "cart",
+    path: "/general-items/cart",
+    api: "/api/carts/current",
+    variant: "rows",
+    ready: "장바구니가 비어 있습니다.",
+  },
+]) {
+  test(`skeleton: ${entry.name} resolves to content`, async ({
+    page,
+    request,
+  }) => {
+    await request.post("http://127.0.0.1:8787/__test/seed-account");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const release = await holdApi(page, entry.api);
+    if (entry.auth) await login(page, entry.path);
+    else await page.goto(entry.path);
+    const skeleton = page.getByTestId(`skeleton-${entry.variant}`).first();
+    await expect(skeleton).toBeVisible();
+    await expect(skeleton).toHaveAttribute("aria-busy", "true");
+    await expect(
+      skeleton.locator("button, input, a, [tabindex='0']"),
+    ).toHaveCount(0);
+    if (entry.name === "cart")
+      await expect(
+        page.getByText("장바구니가 비어 있습니다.", { exact: true }),
+      ).toHaveCount(0);
+    if (entry.name === "post detail")
+      await expect(page.getByTestId("comments-section")).toHaveCount(0);
+    if (["shop grid", "account", "post detail"].includes(entry.name)) {
+      await page.screenshot({
+        scale: "css",
+        path: `artifacts/skeleton-${entry.variant}.png`,
+      });
+    }
+    await release();
+    await expect(page.getByTestId(`skeleton-${entry.variant}`)).toHaveCount(0);
+    await expect(
+      page.getByText(entry.ready, { exact: false }).first(),
+    ).toBeVisible();
+  });
+}
+
+test("skeleton respects reduced motion and transitions to failure with retry", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const release = await holdApi(page, "/api/2.0/general-products");
+  await page.goto("/general-items");
+  const shapes = page
+    .getByTestId("skeleton-cards")
+    .getByTestId("skeleton-shapes");
+  await expect(shapes).toHaveCSS("opacity", "1");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect
+    .poll(() => shapes.evaluate((el) => Number(getComputedStyle(el).opacity)))
+    .toBeLessThan(0.9);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(shapes).toHaveCSS("opacity", "1");
+  await release(503);
+  await expect(page.getByTestId("skeleton-cards")).toHaveCount(0);
+  await expect(page.getByRole("alert")).toBeVisible();
+  await page
+    .getByRole("button", { name: "다시 불러오기", exact: true })
+    .click();
+  await expect(page.getByTestId("product-card-1")).toBeVisible();
+});
+
+test("account child pages retain context and grouped information", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-account");
+  await login(page, "/my-page?tab=orders");
+  await page.getByRole("link", { name: /위스키 테이스팅 글라스/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "주문 정보", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "결제 정보", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "배송·수령 정보", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "내 주문 목록", exact: true }).click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
+  await page.getByRole("button", { name: "예약 내역", exact: true }).click();
+  await expect(page.getByText("예약 확정", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /싱글캐스크 예약/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "예약 공고 확인", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "내 예약 목록으로", exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
+  await page.getByRole("button", { name: "나의 멤버십", exact: false }).click();
+  await expect(page.getByText("가입됨", { exact: true })).toBeVisible();
+  await expect(page.getByText("미가입", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "자주 묻는 질문", exact: true })
+    .click();
+  const faq = page.getByRole("button", {
+    name: "배송은 얼마나 걸리나요?",
+    exact: true,
+  });
+  await faq.click();
+  await expect(faq).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    page.getByText("사전 예약 후 제품이 통관되면", { exact: false }),
+  ).toBeVisible();
+});
+
+test("next-page skeleton preserves loaded products and ends after append", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/__test/seed-feed", { data: {} });
+  await page.goto("/general-items");
+  await expect(page.getByTestId("product-card-1")).toBeVisible();
+  const release = await holdApi(
+    page,
+    "/api/2.0/general-products",
+    (route) => new URL(route.request().url()).searchParams.get("page") === "1",
+  );
+  await page
+    .getByRole("button", { name: "더 보기", exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("skeleton-inline")).toBeVisible();
+  await expect(page.getByTestId("product-card-1")).toBeAttached();
+  await expect(page.getByTestId("skeleton-cards")).toHaveCount(0);
+  await release();
+  await expect(page.getByTestId("product-card-21")).toBeAttached();
+  await expect(page.getByTestId("skeleton-inline")).toHaveCount(0);
+});
+
+test("cart refetch retains existing rows while quantities update", async ({
+  page,
+  request,
+}) => {
+  await request.post("http://127.0.0.1:8787/api/2.0/carts/items/batch", {
+    data: { items: [{ generalProductId: 1, quantity: 1 }] },
+  });
+  await page.goto("/general-items/cart");
+  await expect(
+    page.getByRole("link", { name: "위스키 테이스팅 글라스", exact: true }),
+  ).toBeVisible();
+  const release = await holdApi(page, "/api/carts/current");
+  await page.getByRole("button", { name: "수량 늘리기", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "위스키 테이스팅 글라스", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("skeleton-rows")).toHaveCount(0);
+  await release();
+  await expect(page.getByText("2개", { exact: true })).toBeVisible();
+});
+
+for (const outcome of ["loaded", "failed"]) {
+  test(`remote photo skeleton clears when image ${outcome}`, async ({
+    page,
+    request,
+  }) => {
+    const product = await (
+      await request.get("http://127.0.0.1:8787/api/2.0/general-products/1")
+    ).json();
+    const imageUrl = "http://127.0.0.1:8787/__test/photo.png";
+    await page.route("**/api/2.0/general-products/1", (route) =>
+      route.fulfill({ json: { ...product, imageUrl } }),
+    );
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    await page.route(imageUrl, async (route) => {
+      await gate;
+      if (outcome === "failed") return route.abort("failed");
+      return route.fulfill({
+        contentType: "image/png",
+        body: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==",
+          "base64",
+        ),
+      });
+    });
+    await page.goto("/general-items/1");
+    await expect(page.getByTestId("skeleton-media")).toBeVisible();
+    finish();
+    await expect(page.getByTestId("skeleton-media")).toHaveCount(0);
+    if (outcome === "failed")
+      await expect(
+        page.getByLabel("위스키 테이스팅 글라스 이미지 없음", { exact: true }),
+      ).toBeVisible();
+    else
+      await expect(
+        page.getByRole("img", { name: "위스키 테이스팅 글라스", exact: true }),
+      ).toBeVisible();
+  });
+}
+
+test("account child layouts fit narrow, wide and landscape screens", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(90000);
+  await request.post("http://127.0.0.1:8787/__test/seed-account");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const viewport of [
+    { width: 320, height: 720 },
+    { width: 390, height: 844 },
+    { width: 430, height: 932 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const [name, path, heading] of [
+      ["ticket-orders", "/my-page/ticket-orders", "내 이용권 주문"],
+      ["ticket-detail", "/my-page/ticket-orders/2", "주문 정보"],
+      ["reservation-detail", "/my-page/reservations/1", "예약 공고 확인"],
+      [
+        "inquiry-detail",
+        "/my-page/inquiries/1",
+        "픽업 일정에 대해 문의드립니다",
+      ],
+      ["orders", "/my-page?tab=orders", "주문 내역"],
+      ["reservations", "/my-page?tab=reservations", "내 예약 신청"],
+      ["membership", "/my-page?tab=membership", "나의 멤버십"],
+      ["profile", "/my-page?tab=profile", "내 정보 관리"],
+      ["business", "/my-page?tab=business", "사업자 정보"],
+      ["help", "/my-page?tab=faq", "고객 지원"],
+      ["order-detail", "/my-page/order/1", "주문 정보"],
+      ["inquiries", "/my-page/inquiries", "1:1 문의"],
+    ]) {
+      await login(page, path);
+      await expect(
+        page.getByRole("heading", { name: heading, exact: true }).first(),
+      ).toBeVisible();
+      await expect(page.getByTestId("skeleton-account")).toHaveCount(0);
+      await page.evaluate(() => document.fonts.ready);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      if (viewport.width === 390 || viewport.width === 430)
+        await page.screenshot({
+          scale: "css",
+          path: `artifacts/account-${name}-${viewport.width}.png`,
+        });
+    }
+  }
 });

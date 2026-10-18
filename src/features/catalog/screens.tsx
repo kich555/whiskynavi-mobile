@@ -138,6 +138,12 @@ export function CatalogScreen({
   });
   return (
     <InfiniteList
+      skeleton={
+        <Loading
+          variant="cards"
+          columns={width >= 375 && fontScale <= 1.3 ? 2 : 1}
+        />
+      }
       columns={width >= 375 && fontScale <= 1.3 ? 2 : 1}
       columnGap={20}
       rowGap={0}
@@ -166,9 +172,13 @@ export function CatalogScreen({
               </Label>
             </View>
           ) : null}
-          <Label muted>
-            판매중인 {titles[channel]} {query.total}건
-          </Label>
+          {query.isLoading ? (
+            <Loading variant="inline" label="상품 수 불러오는 중" />
+          ) : (
+            <Label muted>
+              판매중인 {titles[channel]} {query.total}건
+            </Label>
+          )}
           <View style={styles.row}>
             {channel === "general" ? (
               <SurfaceLink
@@ -404,7 +414,7 @@ export function ProductScreen({ channel }: { channel: Channel }) {
         <Label muted>목록으로 돌아가기</Label>
       </SurfaceLink>
       <Message error={query.error ?? task.error} />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="detail" /> : null}
       {product ? (
         <>
           <View
@@ -625,7 +635,7 @@ export function CartScreen() {
       refreshing={query.isFetching}
     >
       <Message error={query.error ?? task.error ?? priced.error} />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="rows" /> : null}
       {query.data?.items?.length ? (
         query.data.items.map((item) => (
           <View key={item.cartItemId} style={styles.section}>
@@ -666,9 +676,12 @@ export function CartScreen() {
             />
           </View>
         ))
-      ) : (
+      ) : !query.isLoading && !query.error ? (
         <Label muted>장바구니가 비어 있습니다.</Label>
-      )}
+      ) : null}
+      {priced.isLoading ? (
+        <Loading variant="inline" label="주문 금액 계산 중" />
+      ) : null}
       {priced.data && query.data?.items?.length ? (
         <>
           <Label>상품 합계 {money(priced.data.data.itemsTotalPrice)}</Label>
@@ -946,6 +959,27 @@ function CheckoutForm({ channel }: { channel: PaymentChannel }) {
       });
       router.push("/provider");
     });
+  if (
+    product.isLoading ||
+    cart.isLoading ||
+    shipping.isLoading ||
+    locations.isLoading ||
+    me.isLoading ||
+    addresses.isLoading
+  )
+    return (
+      <Screen
+        title={
+          channel === "smart"
+            ? "픽업 주문서"
+            : channel === "ticket"
+              ? "이용권 주문서"
+              : "배송 주문서"
+        }
+      >
+        <Loading variant="form" label="주문 정보 불러오는 중" />
+      </Screen>
+    );
   return (
     <Screen
       title={
@@ -968,7 +1002,6 @@ function CheckoutForm({ channel }: { channel: PaymentChannel }) {
               (selectionError || null))
         }
       />
-      {product.isLoading || cart.isLoading ? <Loading /> : null}
       {product.data ? (
         <>
           <Heading>{product.data.name}</Heading>

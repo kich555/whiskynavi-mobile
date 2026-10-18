@@ -3,7 +3,7 @@ import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import {
   getApiV2Orders,
   getApiOrdersOrderid,
@@ -22,6 +22,23 @@ import {
   type UserGeneralItemDeliveryOrderResponse,
 } from "@/apis/generated/api";
 import {
+  Package,
+  CreditCard,
+  Truck,
+  MessageCircle,
+  CircleCheck,
+  CircleX,
+} from "lucide-react-native";
+import {
+  AccountSection,
+  HistoryCard,
+  InfoPair,
+  StatusPill,
+  accountUI,
+  type StatusTone,
+} from "@/components/native/account";
+import {
+  colors,
   Action,
   Field,
   Heading,
@@ -35,7 +52,6 @@ import {
   confirmAction,
   date,
   money,
-  styles,
   useTask,
 } from "@/components/native/ui";
 import { useSession } from "@/lib/providers";
@@ -47,6 +63,12 @@ import {
   ORDER_STATUS_MAP,
 } from "@/features/account/constants";
 
+function orderTone(status?: string): StatusTone {
+  if (status && /CANCEL|REFUND|FAIL/.test(status)) return "danger";
+  if (status && /COMPLETED/.test(status)) return "positive";
+  if (status && /PENDING|REQUESTED/.test(status)) return "warning";
+  return "neutral";
+}
 export function OrdersList({ ticketOnly = false }: { ticketOnly?: boolean }) {
   const { signedIn } = useSession();
   const query = useInfiniteFeed({
@@ -66,30 +88,56 @@ export function OrdersList({ ticketOnly = false }: { ticketOnly?: boolean }) {
       <InfiniteList
         title={ticketOnly ? "내 이용권 주문" : "주문 내역"}
         {...query.feed}
+        compact
+        header={
+          <Label muted>
+            {ticketOnly
+              ? "구매한 이용권과 사용 정보를 확인하세요."
+              : "주문 상태와 배송·수령 정보를 확인하세요."}
+          </Label>
+        }
         renderItem={(order) => (
-          <>
-            <NavLink
-              href={
-                order.smartOrder
-                  ? `/smart-orders/${order.id}`
-                  : `${ticketOnly ? "/my-page/ticket-orders" : "/my-page/order"}/${order.id}`
-              }
+          <HistoryCard
+            href={
+              order.smartOrder
+                ? `/smart-orders/${order.id}`
+                : `${ticketOnly ? "/my-page/ticket-orders" : "/my-page/order"}/${order.id}`
+            }
+            title={
+              order.itemName ??
+              order.itemsSummary ??
+              order.saleTitle ??
+              order.orderNumber ??
+              "주문 내역"
+            }
+            eyebrow={date(order.createdAt)}
+            badge={
+              <StatusPill
+                label={
+                  ORDER_STATUS_MAP[order.orderStatus ?? ""]?.label ??
+                  order.orderStatus ??
+                  "상태 확인"
+                }
+                tone={orderTone(order.orderStatus)}
+              />
+            }
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "baseline",
+              }}
             >
-              {order.itemName ??
-                order.itemsSummary ??
-                order.saleTitle ??
-                order.orderNumber}
-            </NavLink>
-            <Label>
-              {money(order.totalPrice)} ·{" "}
-              {order.totalQuantity ?? order.requestedQuantity}개
-            </Label>
-            <Label muted>
-              {ORDER_STATUS_MAP[order.orderStatus ?? ""]?.label ??
-                order.orderStatus}{" "}
-              · {date(order.createdAt)}
-            </Label>
-          </>
+              <Text style={accountUI.price}>{money(order.totalPrice)}</Text>
+              <Text style={accountUI.caption}>
+                {order.totalQuantity ?? order.requestedQuantity ?? "—"}개
+              </Text>
+            </View>
+            <View style={accountUI.divider} />
+            <Text style={accountUI.caption}>주문번호 {order.orderNumber}</Text>
+          </HistoryCard>
         )}
       />
     </RequireAuth>
@@ -130,9 +178,12 @@ function Entitlements({
   return (
     <View style={{ gap: 14 }}>
       <Message error={query.error ?? task.error} />
+      {query.isLoading ? (
+        <Loading variant="rows" count={2} label="이용권 불러오는 중" />
+      ) : null}
       {query.data?.data.length ? <Heading>이용권</Heading> : null}
       {query.data?.data.map((item) => (
-        <View key={item.id} style={styles.section}>
+        <View key={item.id} style={accountUI.panel}>
           <Label>
             {item.itemName} · {labels[item.status ?? ""] ?? item.status}
           </Label>
@@ -182,70 +233,129 @@ export function OrderSummary({
   const task = useTask();
   return (
     <View style={{ gap: 20 }}>
-      <Heading>
-        {order.itemName ?? order.itemsSummary ?? order.saleTitle}
-      </Heading>
-      <Label muted>
-        주문번호 {order.orderNumber} · {date(order.createdAt)}
-      </Label>
-      <Label>
-        {ORDER_STATUS_MAP[order.orderStatus ?? ""]?.label ?? order.orderStatus}
-      </Label>
-      <Heading>총 {money(order.totalPrice)}</Heading>
-      {order.items?.map((item) => (
-        <View key={item.orderItemId} style={styles.section}>
-          <Label>{item.itemName}</Label>
-          <Label muted>
-            {item.quantity}개 · 단가 {money(item.unitPrice)} · 합계{" "}
-            {money(item.lineTotalPrice)}
-          </Label>
+      <AccountSection
+        title="주문 정보"
+        icon={<Package size={18} color={colors.muted} />}
+      >
+        <StatusPill
+          label={
+            ORDER_STATUS_MAP[order.orderStatus ?? ""]?.label ??
+            order.orderStatus ??
+            "상태 확인"
+          }
+          tone={orderTone(order.orderStatus)}
+        />
+        <Heading>
+          {order.itemName ?? order.itemsSummary ?? order.saleTitle}
+        </Heading>
+        <Text style={accountUI.caption}>
+          주문번호 {order.orderNumber} · {date(order.createdAt)}
+        </Text>
+        <View style={accountUI.divider} />
+        {order.items?.map((item) => (
+          <View key={item.orderItemId} style={{ gap: 6 }}>
+            <Text style={accountUI.body}>{item.itemName}</Text>
+            <InfoPair
+              label={`${item.quantity}개 · 단가 ${money(item.unitPrice)}`}
+              value={money(item.lineTotalPrice)}
+            />
+          </View>
+        ))}
+        <InfoPair
+          label="총 수량"
+          value={`${order.totalQuantity ?? order.requestedQuantity ?? "—"}개`}
+        />
+        <InfoPair label="상품 금액" value={money(order.itemsTotalPrice)} />
+        <InfoPair label="배송비" value={money(order.shippingFee)} />
+        <View style={accountUI.divider} />
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <Text style={accountUI.body}>총 주문 금액</Text>
+          <Text style={accountUI.price}>{money(order.totalPrice)}</Text>
         </View>
-      ))}
-      <Label>
-        수량 {order.totalQuantity ?? order.requestedQuantity ?? "-"}
-      </Label>
-      <Label>
-        상품금액 {money(order.itemsTotalPrice)} · 배송비{" "}
-        {money(order.shippingFee)}
-      </Label>
-      <Heading>결제 정보</Heading>
-      <Label>
-        {statusLabel(order.payment?.paymentMethod)} ·{" "}
-        {statusLabel(order.payment?.paymentStatus)}
-      </Label>
-      <Label>
-        결제 금액 {money(order.payment?.paidAmount)} · 누적 환불액{" "}
-        {money(order.payment?.refundedAmount)}
-      </Label>
-      {order.payment?.bankAccountNumber ? (
-        <View style={styles.section}>
-          <Heading>입금 안내</Heading>
-          <Label>
-            {order.payment.bankName} · {order.payment.bankAccountNumber}
-          </Label>
-          <Label>예금주 {order.payment.bankAccountHolderName}</Label>
-          <Label muted>{order.payment.bankTransferGuideMessage}</Label>
-          <Label muted>입금 기한 {date(order.payment.depositDeadlineAt)}</Label>
-          {order.payment.depositOverdue ? (
-            <Label>입금 기한이 지났습니다. 주문 상태를 확인해 주세요.</Label>
+      </AccountSection>
+      {order.payment ? (
+        <AccountSection
+          title="결제 정보"
+          icon={<CreditCard size={18} color={colors.muted} />}
+        >
+          <InfoPair
+            label="결제 수단"
+            value={statusLabel(order.payment.paymentMethod)}
+          />
+          <InfoPair
+            label="결제 상태"
+            value={statusLabel(order.payment.paymentStatus)}
+          />
+          <InfoPair label="결제 금액" value={money(order.payment.paidAmount)} />
+          <InfoPair
+            label="누적 환불액"
+            value={money(order.payment.refundedAmount)}
+          />
+          {order.payment.bankAccountNumber ? (
+            <View
+              style={{
+                gap: 12,
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: colors.line,
+              }}
+            >
+              <Text style={accountUI.sectionTitle}>입금 안내</Text>
+              <InfoPair
+                label={order.payment.bankName ?? "입금 계좌"}
+                value={order.payment.bankAccountNumber}
+              />
+              <InfoPair
+                label="예금주"
+                value={order.payment.bankAccountHolderName}
+              />
+              <InfoPair
+                label="입금 기한"
+                value={date(order.payment.depositDeadlineAt)}
+              />
+              {order.payment.bankTransferGuideMessage ? (
+                <Label muted>{order.payment.bankTransferGuideMessage}</Label>
+              ) : null}
+              {order.payment.depositOverdue ? (
+                <Label>
+                  입금 기한이 지났습니다. 주문 상태를 확인해 주세요.
+                </Label>
+              ) : null}
+            </View>
           ) : null}
-        </View>
+        </AccountSection>
       ) : null}
       {order.delivery ? (
-        <>
-          <Heading>배송·수령 정보</Heading>
-          <Label>
-            {order.delivery.receiverName} · {order.delivery.receiverPhone}
-          </Label>
-          <Label>{order.delivery.address}</Label>
-          <Label muted>
-            {order.delivery.carrierName} · {order.delivery.trackingNumber}
-          </Label>
-          <Label muted>
-            발송 {date(order.delivery.shippedAt)} · 배송완료{" "}
-            {date(order.delivery.deliveredAt)}
-          </Label>
-        </>
+        <AccountSection
+          title="배송·수령 정보"
+          icon={<Truck size={18} color={colors.muted} />}
+        >
+          <InfoPair label="받는 분" value={order.delivery.receiverName} />
+          <InfoPair label="연락처" value={order.delivery.receiverPhone} />
+          <InfoPair label="주소" value={order.delivery.address} />
+          {order.delivery.trackingNumber ? (
+            <InfoPair
+              label={order.delivery.carrierName ?? "운송장"}
+              value={order.delivery.trackingNumber}
+            />
+          ) : null}
+          {order.delivery.shippedAt ? (
+            <InfoPair label="발송일" value={date(order.delivery.shippedAt)} />
+          ) : null}
+          {order.delivery.deliveredAt ? (
+            <InfoPair
+              label="배송 완료"
+              value={date(order.delivery.deliveredAt)}
+            />
+          ) : null}
+        </AccountSection>
       ) : null}
       {order.afterSaleManaged ? (
         <Label>
@@ -254,64 +364,78 @@ export function OrderSummary({
         </Label>
       ) : null}
       <Entitlements order={order} guestToken={guestToken} />
-      {!order.afterSaleManaged &&
-      isOrderCancellationAllowed(
-        order.orderStatus,
-        order.saleTiming,
-        order.smartOrder,
-      ) ? (
-        <>
-          <Field
-            label="취소 요청 사유"
-            multiline
-            value={reason}
-            onChangeText={setReason}
-            maxLength={500}
-          />
+      <AccountSection
+        title="주문 관리"
+        icon={<MessageCircle size={18} color={colors.muted} />}
+      >
+        {!order.afterSaleManaged &&
+        isOrderCancellationAllowed(
+          order.orderStatus,
+          order.saleTiming,
+          order.smartOrder,
+        ) ? (
+          <>
+            <Field
+              label="취소 요청 사유"
+              multiline
+              value={reason}
+              onChangeText={setReason}
+              maxLength={500}
+            />
+            <Action
+              secondary
+              size="compact"
+              leading={<CircleX size={18} color={colors.text} />}
+              title="주문 취소 요청"
+              disabled={task.pending || !reason.trim()}
+              onPress={() =>
+                confirmAction(
+                  "주문 취소 요청",
+                  "결제 완료 건은 관리자 승인 후 취소됩니다. 취소를 요청하시겠습니까?",
+                  () =>
+                    void task.run(async () => {
+                      if (guestToken)
+                        await patchApiOrdersGuestOrdernumberCancel(
+                          order.orderNumber!,
+                          { guestOrderToken: guestToken, reason },
+                        );
+                      else
+                        await patchApiOrdersOrderidCancel(order.id!, {
+                          reason,
+                        });
+                      refresh();
+                    }),
+                )
+              }
+            />
+          </>
+        ) : null}
+        {!guestToken &&
+        isReceiptCompletionAllowed(
+          order.orderStatus,
+          order.fulfillmentMethod,
+        ) ? (
           <Action
-            secondary
-            title="주문 취소 요청"
-            disabled={task.pending || !reason.trim()}
+            size="compact"
+            leading={<CircleCheck size={18} color={colors.background} />}
+            title="수령 완료"
+            disabled={task.pending}
             onPress={() =>
               confirmAction(
-                "주문 취소 요청",
-                "결제 완료 건은 관리자 승인 후 취소됩니다. 취소를 요청하시겠습니까?",
+                "수령 완료 확인",
+                "실제로 상품을 수령했나요? 처리 후에는 이전 상태로 되돌릴 수 없습니다.",
                 () =>
                   void task.run(async () => {
-                    if (guestToken)
-                      await patchApiOrdersGuestOrdernumberCancel(
-                        order.orderNumber!,
-                        { guestOrderToken: guestToken, reason },
-                      );
-                    else
-                      await patchApiOrdersOrderidCancel(order.id!, { reason });
+                    await patchApiV2OrdersOrderidReceipt(order.id!);
                     refresh();
                   }),
               )
             }
           />
-        </>
-      ) : null}
-      {!guestToken &&
-      isReceiptCompletionAllowed(order.orderStatus, order.fulfillmentMethod) ? (
-        <Action
-          title="수령 완료"
-          disabled={task.pending}
-          onPress={() =>
-            confirmAction(
-              "수령 완료 확인",
-              "실제로 상품을 수령했나요? 처리 후에는 이전 상태로 되돌릴 수 없습니다.",
-              () =>
-                void task.run(async () => {
-                  await patchApiV2OrdersOrderidReceipt(order.id!);
-                  refresh();
-                }),
-            )
-          }
-        />
-      ) : null}
-      <Message error={task.error} />
-      <NavLink href="/my-page/inquiries/new">주문 관련 문의</NavLink>
+        ) : null}
+        <Message error={task.error} />
+        <NavLink href="/my-page/inquiries/new">주문 관련 문의</NavLink>
+      </AccountSection>
     </View>
   );
 }
@@ -347,7 +471,7 @@ function OrderDetail({ smart }: { smart: boolean }) {
       <Message
         error={!valid ? "주문 번호가 올바르지 않습니다." : query.error}
       />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="article" /> : null}
       {data && "pickupLocation" in data && data.pickupLocation ? (
         <>
           <Heading>픽업 매장</Heading>
@@ -405,7 +529,7 @@ export function GuestOrderScreen() {
         }
       />
       <Message error={query.error} />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="article" /> : null}
       {query.data && lookup ? (
         <OrderSummary
           order={query.data.data}

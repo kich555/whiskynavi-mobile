@@ -1,3 +1,4 @@
+import { AccountSection, accountUI } from "@/components/native/account";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { PageHero } from "@/components/native/brand";
 import { statusLabel } from "@/lib/status-label";
@@ -61,7 +62,7 @@ import {
 } from "./policy";
 
 export function ReservationsScreen() {
-  const { signedIn } = useSession();
+  const { signedIn, ready } = useSession();
   const { fontScale } = useWindowDimensions();
   const [loginOpen, setLoginOpen] = useState(true);
   const query = useInfiniteFeed({
@@ -75,6 +76,12 @@ export function ReservationsScreen() {
     enabled: signedIn,
     queryFn: () => getApiBottlesReservationsNoticesRecentEnded(),
   });
+  if (!ready)
+    return (
+      <Screen>
+        <Loading variant="cards" label="예약 정보 준비 중" />
+      </Screen>
+    );
   if (!signedIn)
     return (
       <Screen contentStyle={{ paddingTop: 0 }}>
@@ -122,6 +129,7 @@ export function ReservationsScreen() {
     );
   return (
     <InfiniteList
+      skeleton={<Loading variant="cards" columns={fontScale > 1.3 ? 1 : 2} />}
       intro={
         <PageHero
           title="예약하기"
@@ -147,6 +155,14 @@ export function ReservationsScreen() {
       footer={
         <View style={{ gap: 16, marginTop: 24 }}>
           <Message error={recent.error} />
+          {recent.isLoading ? (
+            <Loading
+              variant="cards"
+              columns={fontScale > 1.3 ? 1 : 2}
+              count={2}
+              label="종료된 예약 불러오는 중"
+            />
+          ) : null}
           {recent.error ? (
             <Action
               secondary
@@ -497,10 +513,10 @@ function ReservationContent({ related }: { related: boolean }) {
             : (query.error ?? task.error)
         }
       />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="detail" /> : null}
       {notice ? (
         <SurfaceLink
-          href="/reservation"
+          href={related ? "/my-page?tab=reservations" : "/reservation"}
           style={[styles.row, { marginTop: 16, gap: 8 }]}
         >
           <ArrowLeft size={18} color={colors.muted} />
@@ -510,12 +526,15 @@ function ReservationContent({ related }: { related: boolean }) {
               { color: colors.muted, fontFamily: "NaviSansBold" },
             ]}
           >
-            목록으로 돌아가기
+            {related ? "내 예약 목록으로" : "목록으로 돌아가기"}
           </Text>
         </SurfaceLink>
       ) : null}
       {notice ? (
-        <View testID="reservation-detail" style={reservationStyles.detail}>
+        <View
+          testID="reservation-detail"
+          style={[reservationStyles.detail, related ? accountUI.panel : null]}
+        >
           <View>
             <Gallery
               images={[notice.bottleImgUrl, ...(notice.imageUrls ?? [])]}
@@ -526,7 +545,7 @@ function ReservationContent({ related }: { related: boolean }) {
                   style={{ aspectRatio: 1 }}
                 />
               }
-              surface="#303b4b"
+              surface={related ? colors.surface : "#303b4b"}
               imagePadding={24}
             />
             <View style={{ position: "absolute", top: 8, right: 8 }}>
@@ -580,7 +599,17 @@ function ReservationContent({ related }: { related: boolean }) {
             now={now}
           />
           {related ? (
-            <Label>예약 신청 이력으로 조회한 읽기 전용 공고입니다.</Label>
+            <AccountSection title="예약 공고 확인">
+              <Label muted>
+                신청 이력에 연결된 공고입니다. 신청 수량·상태·픽업 정보는 내
+                예약 목록에서 확인할 수 있어요.
+              </Label>
+              <NavLink href="/my-page?tab=reservations">
+                내 예약 목록으로
+              </NavLink>
+            </AccountSection>
+          ) : businesses.isLoading || locations.isLoading || mine.isLoading ? (
+            <Loading variant="form" label="예약 신청 정보 불러오는 중" />
           ) : (
             <>
               <Message
@@ -629,7 +658,9 @@ function ReservationContent({ related }: { related: boolean }) {
                         onDismiss={() => setPickupOpen(false)}
                       >
                         <Message error={locations.error} />
-                        {locations.isPending ? <Loading /> : null}
+                        {locations.isPending ? (
+                          <Loading variant="rows" />
+                        ) : null}
                         {locations.data?.map((location) => (
                           <Action
                             key={location.id}

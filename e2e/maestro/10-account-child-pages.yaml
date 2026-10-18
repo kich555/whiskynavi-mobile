@@ -1,0 +1,30 @@
+appId: ${APP_ID}
+name: Account history membership and profile panels
+---
+- runScript: helpers/reset.js
+- runScript: helpers/seed-account.js
+- launchApp:
+    clearState: true
+- runFlow: helpers/login.yaml
+- openLink: whiskynavi-e2e://my-page?tab=orders
+- extendedWaitUntil:
+    visible: 주문 내역
+    timeout: 15000
+- assertVisible: 위스키 테이스팅 글라스
+- takeScreenshot: artifacts/account-orders
+- openLink: whiskynavi-e2e://my-page?tab=reservations
+- extendedWaitUntil:
+    visible: 내 예약 신청
+    timeout: 15000
+- assertVisible: 예약 확정
+- openLink: whiskynavi-e2e://my-page?tab=membership
+- extendedWaitUntil:
+    visible: 나의 멤버십
+    timeout: 15000
+- assertVisible: 가입됨
+- takeScreenshot: artifacts/account-membership
+- openLink: whiskynavi-e2e://my-page?tab=profile
+- extendedWaitUntil:
+    visible: 내 정보 관리
+    timeout: 15000
+- assertVisible: 닉네임 저장

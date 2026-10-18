@@ -127,6 +127,9 @@ export function BoardScreen({ board: initialBoard }: { board: BoardTab }) {
               </Pressable>
             }
           />
+          {info.isLoading ? (
+            <Loading variant="inline" label="게시판 분류 불러오는 중" />
+          ) : null}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -535,7 +538,7 @@ export function PostScreen({
       items={!announcement ? (comments.data?.data ?? []) : []}
       hasNext={false}
       loadMore={() => {}}
-      loading={!announcement && comments.isLoading}
+      loading={Boolean(post) && !announcement && comments.isLoading}
       error={!valid ? "게시글 번호가 올바르지 않습니다." : query.error}
       refresh={() => {
         void query.refetch();
@@ -543,11 +546,11 @@ export function PostScreen({
       }}
       refreshing={query.isRefetching}
       endText=""
-      emptyText={announcement ? "" : "첫 댓글을 남겨보세요."}
+      emptyText={post && !announcement ? "첫 댓글을 남겨보세요." : ""}
       header={
         <View style={{ gap: 16 }}>
           <NavLink href={`/board/${board}`}>목록으로</NavLink>
-          {query.isLoading ? <Loading /> : null}
+          {query.isLoading ? <Loading variant="article" /> : null}
           {post ? (
             <View testID="post-original" style={boardStyles.original}>
               <Text accessibilityRole="header" style={styles.title}>
@@ -595,7 +598,7 @@ export function PostScreen({
               ) : null}
             </View>
           ) : null}
-          {!announcement ? (
+          {!announcement && post ? (
             <View testID="comments-section" style={boardStyles.commentsHeader}>
               <MessageSquare size={18} color={colors.text} />
               <Heading>댓글 {comments.data?.data.length ?? 0}</Heading>
@@ -668,6 +671,12 @@ function PostForm({ board, post }: { board: string; post?: PostResponse }) {
   const me = useQuery({ queryKey: ["me"], queryFn: () => getApiUsersMe() });
   const restricted = me.data?.data.isPostCreationRestricted;
   const owner = !post || me.data?.data.id === post.authorId;
+  if (info.isLoading || me.isLoading)
+    return (
+      <Screen title={post ? "게시글 수정" : "글쓰기"}>
+        <Loading variant="form" />
+      </Screen>
+    );
   return (
     <Screen title={post ? "게시글 수정" : "글쓰기"}>
       <Message error={me.error ?? info.error ?? task.error} />
@@ -753,7 +762,7 @@ export function PostEditorScreen({
         ) : (
           <Screen title="게시글 수정">
             <Message error={query.error} />
-            {query.isLoading ? <Loading /> : null}
+            {query.isLoading ? <Loading variant="form" /> : null}
           </Screen>
         )
       ) : (

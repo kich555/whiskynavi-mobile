@@ -4,14 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState, type ReactNode } from "react";
-import {
-  Platform,
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { Platform, View, Text, Pressable, StyleSheet } from "react-native";
 import {
   getApiUsersMe,
   putApiUsersMeNickname,
@@ -35,7 +28,6 @@ import {
 import { customFetch } from "@/apis/mutator";
 import {
   Action,
-  FilterChip,
   SurfaceLink,
   colors,
   Field,
@@ -54,6 +46,14 @@ import {
   useTask,
 } from "@/components/native/ui";
 import {
+  Check,
+  ArrowLeft,
+  ChevronDown,
+  LockKeyhole,
+  Mail,
+  Bell,
+  Upload,
+  Send,
   UserRound,
   Package,
   CalendarDays,
@@ -66,6 +66,13 @@ import {
   Pencil,
   LogOut,
 } from "lucide-react-native";
+import {
+  AccountSection,
+  HistoryCard,
+  StatusPill,
+  accountUI,
+} from "@/components/native/account";
+
 import { Editor } from "@/components/native/editor";
 import { RichContent } from "@/components/native/rich-content";
 import { useSession } from "@/lib/providers";
@@ -83,98 +90,113 @@ export function MyPageScreen() {
 }
 function MyPage() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const [selected, setSelected] = useState(tab ?? "overview");
-  const query = useQuery({ queryKey: ["me"], queryFn: () => getApiUsersMe() });
+  const selected = [
+    "overview",
+    "profile",
+    "orders",
+    "reservations",
+    "membership",
+    "business",
+    "faq",
+  ].includes(tab ?? "")
+    ? tab!
+    : "overview";
+  const setSelected = (value: string) => router.setParams({ tab: value });
+  const query = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getApiUsersMe(),
+    enabled: ["overview", "profile", "membership"].includes(selected),
+  });
   if (selected === "orders" || selected === "reservations")
     return (
       <View style={{ flex: 1 }}>
-        <AccountTabs value={selected} onChange={setSelected} />
+        <AccountBack onBack={() => setSelected("overview")} />
         {selected === "orders" ? <OrdersList /> : <MyReservations />}
       </View>
     );
   return (
     <Screen
-      title="마이페이지"
+      title={selected === "overview" ? "마이페이지" : undefined}
       refresh={() => void query.refetch()}
       refreshing={query.isFetching}
     >
       {selected !== "overview" ? (
-        <AccountTabs value={selected} onChange={setSelected} />
+        <AccountBack onBack={() => setSelected("overview")} />
+      ) : null}
+      {selected !== "overview" ? (
+        <Text accessibilityRole="header" style={styles.title}>
+          {(
+            {
+              profile: "내 정보 관리",
+              membership: "나의 멤버십",
+              business: "사업자 등록",
+              faq: "고객 지원",
+            } as Record<string, string>
+          )[selected] ?? "마이페이지"}
+        </Text>
       ) : null}
       <Message error={query.error} />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? (
+        <Loading variant={selected === "profile" ? "form" : "account"} />
+      ) : null}
       {query.data ? (
         <>
-          <View style={accountStyles.identity}>
-            <View
-              style={accountStyles.avatar}
-              accessibilityElementsHidden
-              aria-hidden
-            >
-              <UserRound size={24} color={colors.text} />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Heading>
-                {query.data.data.username ?? query.data.data.name}님
-              </Heading>
-              <Text style={accountStyles.meta}>{query.data.data.email}</Text>
-              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-                {(["navi", "tales"] as const)
-                  .filter((key) =>
-                    query.data!.data.roles?.includes(
-                      key === "navi"
-                        ? MEMBERSHIP_ROLE.NAVI
-                        : MEMBERSHIP_ROLE.TALES,
-                    ),
-                  )
-                  .map((key) => (
-                    <Text key={key} style={accountStyles.membership}>
-                      {MEMBERSHIP_INFO[key].name}
-                    </Text>
-                  ))}
+          {selected === "overview" ? (
+            <View style={accountStyles.identity}>
+              <View
+                style={accountStyles.avatar}
+                accessibilityElementsHidden
+                aria-hidden
+              >
+                <UserRound size={24} color={colors.text} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Heading>
+                  {query.data.data.username ?? query.data.data.name}님
+                </Heading>
+                <Text style={accountStyles.meta}>{query.data.data.email}</Text>
+                <View
+                  style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}
+                >
+                  {(["navi", "tales"] as const)
+                    .filter((key) =>
+                      query.data!.data.roles?.includes(
+                        key === "navi"
+                          ? MEMBERSHIP_ROLE.NAVI
+                          : MEMBERSHIP_ROLE.TALES,
+                      ),
+                    )
+                    .map((key) => (
+                      <Text key={key} style={accountStyles.membership}>
+                        {MEMBERSHIP_INFO[key].name}
+                      </Text>
+                    ))}
+                </View>
               </View>
             </View>
-          </View>
+          ) : null}
           {selected === "overview" ? (
             <AccountOverview onChange={setSelected} />
           ) : null}
           {selected === "profile" ? (
             <ProfileForm key={query.data.data.id} user={query.data.data} />
           ) : selected === "membership" ? (
-            <>
-              {(["navi", "tales"] as const).map((key) => (
-                <View key={key} style={styles.section}>
-                  <Heading>{MEMBERSHIP_INFO[key].name}</Heading>
-                  <Label>
-                    {query.data.data.roles?.includes(
-                      key === "navi"
-                        ? MEMBERSHIP_ROLE.NAVI
-                        : MEMBERSHIP_ROLE.TALES,
-                    )
-                      ? "가입됨"
-                      : "미가입"}
-                  </Label>
-                  {MEMBERSHIP_INFO[key].benefits.map((benefit) => (
-                    <Label key={benefit} muted>
-                      {benefit}
-                    </Label>
-                  ))}
-                </View>
-              ))}
-            </>
-          ) : selected === "business" ? (
-            <BusinessSection />
-          ) : selected === "faq" ? (
-            <>
-              {FAQ_DATA.map((faq) => (
-                <View key={faq.question} style={styles.section}>
-                  <Heading>{faq.question}</Heading>
-                  <Label muted>{faq.answer}</Label>
-                </View>
-              ))}
-              <NavLink href="/my-page/inquiries">1:1 문의</NavLink>
-            </>
+            <MembershipCards user={query.data.data} />
           ) : null}
+        </>
+      ) : null}
+      {selected === "business" ? <BusinessSection /> : null}
+      {selected === "faq" ? (
+        <>
+          <Label muted>궁금한 내용을 선택하면 답변을 확인할 수 있어요.</Label>
+          {FAQ_DATA.map((faq) => (
+            <FaqItem
+              key={faq.question}
+              question={faq.question}
+              answer={faq.answer}
+            />
+          ))}
+          <NavLink href="/my-page/inquiries">1:1 문의</NavLink>
         </>
       ) : null}
       {selected !== "overview" ? (
@@ -197,39 +219,150 @@ function MyPage() {
     </Screen>
   );
 }
-function AccountTabs({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function AccountBack({ onBack }: { onBack: () => void }) {
+  const [focused, setFocused] = useState(false);
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={{ flexGrow: 0, flexShrink: 0 }}
-      contentContainerStyle={{ padding: 4, gap: 8 }}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="마이페이지로 돌아가기"
+      onPress={onBack}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) => ({
+        minHeight: 48,
+        paddingHorizontal: 8,
+        flexDirection: "row",
+        gap: 8,
+        alignItems: "center",
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: focused ? "#bdd2df" : "transparent",
+        backgroundColor: pressed ? colors.line : "transparent",
+      })}
     >
-      {Object.entries({
-        overview: "전체",
-        profile: "내 정보",
-        orders: "주문",
-        reservations: "예약",
-        membership: "멤버십",
-        business: "사업자",
-        faq: "도움말",
-      }).map(([key, label]) => (
-        <FilterChip
-          key={key}
-          selected={value === key}
-          label={label}
-          onPress={() => onChange(key)}
-        />
-      ))}
-    </ScrollView>
+      <ArrowLeft
+        size={18}
+        color={colors.muted}
+        aria-hidden
+        accessibilityElementsHidden
+      />
+      <Text style={accountStyles.rowLabel}>마이페이지</Text>
+    </Pressable>
   );
 }
+
+function MembershipCards({ user }: { user: UserSelfResponse }) {
+  return (
+    <View style={{ gap: 20 }}>
+      <Label muted>가입 상태와 멤버십별 혜택을 확인하세요.</Label>
+      {(["navi", "tales"] as const).map((key) => {
+        const info = MEMBERSHIP_INFO[key];
+        const joined = Boolean(
+          user.roles?.includes(
+            key === "navi" ? MEMBERSHIP_ROLE.NAVI : MEMBERSHIP_ROLE.TALES,
+          ),
+        );
+        return (
+          <AccountSection
+            key={key}
+            title={info.name}
+            subtitle={info.subtitle}
+            icon={<Crown size={20} color={colors.text} />}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "center",
+              }}
+            >
+              <Text style={accountUI.price}>{info.badgeLabel}</Text>
+              <StatusPill
+                label={joined ? "가입됨" : "미가입"}
+                tone={joined ? "positive" : "neutral"}
+              />
+            </View>
+            <View style={accountUI.divider} />
+            <Text style={accountUI.caption}>멤버십 혜택</Text>
+            {info.benefits.map((benefit) => (
+              <View
+                key={benefit}
+                style={{
+                  flexDirection: "row",
+                  gap: 10,
+                  alignItems: "flex-start",
+                }}
+              >
+                <Check
+                  size={16}
+                  color={colors.muted}
+                  aria-hidden
+                  accessibilityElementsHidden
+                />
+                <Text style={[accountUI.body, { flex: 1 }]}>{benefit}</Text>
+              </View>
+            ))}
+          </AccountSection>
+        );
+      })}
+      <SurfaceLink href="/my-page/inquiries/new" style={accountUI.history}>
+        <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+          <MessageCircle
+            size={18}
+            color={colors.muted}
+            aria-hidden
+            accessibilityElementsHidden
+          />
+          <Text style={[accountUI.body, { flex: 1 }]}>멤버십 관련 문의</Text>
+          <ChevronRight
+            size={18}
+            color={colors.muted}
+            aria-hidden
+            accessibilityElementsHidden
+          />
+        </View>
+      </SurfaceLink>
+    </View>
+  );
+}
+function FaqItem({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={[accountUI.panel, { padding: 0, gap: 0, overflow: "hidden" }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={question}
+        accessibilityState={{ expanded: open }}
+        aria-expanded={open}
+        onPress={() => setOpen(!open)}
+        style={({ pressed }) => ({
+          minHeight: 60,
+          padding: 16,
+          flexDirection: "row",
+          gap: 12,
+          alignItems: "center",
+          backgroundColor: pressed ? colors.line : "transparent",
+        })}
+      >
+        <Text style={[accountUI.body, { flex: 1 }]}>{question}</Text>
+        <ChevronDown
+          size={18}
+          color={colors.muted}
+          style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}
+          aria-hidden
+          accessibilityElementsHidden
+        />
+      </Pressable>
+      {open ? (
+        <View style={{ padding: 16, paddingTop: 0 }}>
+          <Label muted>{answer}</Label>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function AccountOverview({ onChange }: { onChange: (value: string) => void }) {
   return (
     <View style={{ gap: 24 }}>
@@ -491,133 +624,157 @@ function ProfileForm({ user }: { user: UserSelfResponse }) {
   };
   return (
     <View style={{ gap: 20 }}>
-      <Field label="닉네임" value={nickname} onChangeText={setNickname} />
-      <Action
-        secondary
-        title="닉네임 저장"
-        disabled={task.pending || !/^[가-힣A-Za-z0-9]{2,16}$/.test(nickname)}
-        onPress={() =>
-          void task.run(async () => {
-            await updateTokens(
-              (await putApiUsersMeNickname({ nickname })).data,
-            );
-            await refresh();
-          })
-        }
-      />
-      <Field
-        label="변경할 이메일"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={(v) => {
-          setEmail(v);
-          setSent("");
-          setVerified("");
-        }}
-      />
-      <Action
-        secondary
-        title="이메일 인증코드 발송"
-        disabled={task.pending || !email || email === user.email}
-        onPress={() =>
-          void task.run(async () => {
-            await postApiUsersMeEmailVerificationSend({ email });
-            setSent(email);
-          })
-        }
-      />
-      {sent === email && sent ? (
-        <>
-          <Field label="인증코드" value={code} onChangeText={setCode} />
-          <Action
-            secondary
-            title="인증코드 확인"
-            disabled={task.pending || !code}
-            onPress={() =>
-              void task.run(async () => {
-                await postApiUsersMeEmailVerificationVerify({ email, code });
-                setVerified(email);
-              })
-            }
-          />
-        </>
-      ) : null}
-      <Action
-        secondary
-        title="이메일 변경 저장"
-        disabled={task.pending || !verified || verified !== email}
-        onPress={() =>
-          void task.run(async () => {
-            await updateTokens(
-              (await putApiUsersMeEmail({ newEmail: email })).data,
-            );
-            await refresh();
-          })
-        }
-      />
-      <Heading>비밀번호 변경</Heading>
-      <Field
-        label="현재 비밀번호"
-        value={currentPassword}
-        onChangeText={setCurrentPassword}
-        secureTextEntry
-      />
-      <Field
-        label="새 비밀번호"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-      />
-      <Field
-        label="새 비밀번호 확인"
-        value={confirm}
-        onChangeText={setConfirm}
-        secureTextEntry
-      />
-      <Action
-        secondary
-        title="비밀번호 변경"
-        disabled={
-          task.pending ||
-          !currentPassword ||
-          newPassword.length < 6 ||
-          newPassword !== confirm
-        }
-        onPress={() =>
-          void task.run(async () => {
-            await putApiAuthChangePassword({ currentPassword, newPassword });
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirm("");
-            setNotice("비밀번호를 변경했습니다.");
-          })
-        }
-      />
-      <Heading>수신 동의 설정</Heading>
-      {Object.entries({
-        marketingAgree: "마케팅 정보",
-        emailAgree: "이메일",
-        smsAgree: "SMS",
-        snsAgree: "SNS",
-      }).map(([key, label]) => (
-        <Toggle
-          key={key}
-          label={label}
-          value={agreements[key as keyof typeof agreements]}
-          onChange={(value) => setAgreements({ ...agreements, [key]: value })}
+      <AccountSection
+        title="닉네임"
+        subtitle="커뮤니티에 표시되는 이름입니다."
+        icon={<Pencil size={18} color={colors.muted} />}
+      >
+        <Field label="닉네임" value={nickname} onChangeText={setNickname} />
+        <Action
+          size="compact"
+          secondary
+          title="닉네임 저장"
+          disabled={task.pending || !/^[가-힣A-Za-z0-9]{2,16}$/.test(nickname)}
+          onPress={() =>
+            void task.run(async () => {
+              await updateTokens(
+                (await putApiUsersMeNickname({ nickname })).data,
+              );
+              await refresh();
+            })
+          }
         />
-      ))}
-      <Action
-        secondary
-        title="수신 동의 저장"
-        disabled={task.pending}
-        onPress={() =>
-          void task.run(async () => {
-            await putApiUsersMeAgreements(agreements);
-            await refresh();
-          })
-        }
-      />
+      </AccountSection>
+      <AccountSection
+        title="이메일"
+        subtitle="인증을 완료한 이메일로 변경할 수 있어요."
+        icon={<Mail size={18} color={colors.muted} />}
+      >
+        <Field
+          label="변경할 이메일"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={(v) => {
+            setEmail(v);
+            setSent("");
+            setVerified("");
+          }}
+        />
+        <Action
+          size="compact"
+          secondary
+          title="이메일 인증코드 발송"
+          disabled={task.pending || !email || email === user.email}
+          onPress={() =>
+            void task.run(async () => {
+              await postApiUsersMeEmailVerificationSend({ email });
+              setSent(email);
+            })
+          }
+        />
+        {sent === email && sent ? (
+          <>
+            <Field label="인증코드" value={code} onChangeText={setCode} />
+            <Action
+              size="compact"
+              secondary
+              title="인증코드 확인"
+              disabled={task.pending || !code}
+              onPress={() =>
+                void task.run(async () => {
+                  await postApiUsersMeEmailVerificationVerify({ email, code });
+                  setVerified(email);
+                })
+              }
+            />
+          </>
+        ) : null}
+        <Action
+          size="compact"
+          secondary
+          title="이메일 변경 저장"
+          disabled={task.pending || !verified || verified !== email}
+          onPress={() =>
+            void task.run(async () => {
+              await updateTokens(
+                (await putApiUsersMeEmail({ newEmail: email })).data,
+              );
+              await refresh();
+            })
+          }
+        />
+      </AccountSection>
+      <AccountSection
+        title="비밀번호 변경"
+        icon={<LockKeyhole size={18} color={colors.muted} />}
+      >
+        <Field
+          label="현재 비밀번호"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry
+        />
+        <Field
+          label="새 비밀번호"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry
+        />
+        <Field
+          label="새 비밀번호 확인"
+          value={confirm}
+          onChangeText={setConfirm}
+          secureTextEntry
+        />
+        <Action
+          secondary
+          title="비밀번호 변경"
+          disabled={
+            task.pending ||
+            !currentPassword ||
+            newPassword.length < 6 ||
+            newPassword !== confirm
+          }
+          onPress={() =>
+            void task.run(async () => {
+              await putApiAuthChangePassword({ currentPassword, newPassword });
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirm("");
+              setNotice("비밀번호를 변경했습니다.");
+            })
+          }
+        />
+      </AccountSection>
+      <AccountSection
+        title="수신 동의 설정"
+        icon={<Bell size={18} color={colors.muted} />}
+      >
+        {Object.entries({
+          marketingAgree: "마케팅 정보",
+          emailAgree: "이메일",
+          smsAgree: "SMS",
+          snsAgree: "SNS",
+        }).map(([key, label]) => (
+          <Toggle
+            key={key}
+            label={label}
+            value={agreements[key as keyof typeof agreements]}
+            onChange={(value) => setAgreements({ ...agreements, [key]: value })}
+          />
+        ))}
+        <Action
+          secondary
+          title="수신 동의 저장"
+          disabled={task.pending}
+          onPress={() =>
+            void task.run(async () => {
+              await putApiUsersMeAgreements(agreements);
+              await refresh();
+            })
+          }
+        />
+      </AccountSection>
       <Message error={task.error} />
       {notice ? <Label>{notice}</Label> : null}
     </View>
@@ -633,18 +790,47 @@ function MyReservations() {
     <InfiniteList
       title="내 예약 신청"
       {...query.feed}
+      compact
+      header={<Label muted>신청한 예약과 픽업 정보를 확인하세요.</Label>}
       renderItem={(item) => (
-        <>
-          <NavLink href={`/my-page/reservations/${item.id}`}>
-            {item.noticeName ?? item.bottleName}
-          </NavLink>
-          <Label>
-            {item.quantity}병 · {statusLabel(item.status)}
-          </Label>
-          <Label muted>
-            {item.pickupBusinessName} · {item.pickupAddress}
-          </Label>
-        </>
+        <HistoryCard
+          href={`/my-page/reservations/${item.id}`}
+          title={item.noticeName ?? item.bottleName ?? "예약 내역"}
+          eyebrow={`예약 #${item.id}`}
+          badge={
+            <StatusPill
+              label={statusLabel(item.status)}
+              tone={
+                item.status === "CANCELLED" || item.status === "REJECTED"
+                  ? "danger"
+                  : "neutral"
+              }
+            />
+          }
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <Text style={accountUI.body}>{item.quantity}병 신청</Text>
+            <CalendarDays
+              size={18}
+              color={colors.muted}
+              aria-hidden
+              accessibilityElementsHidden
+            />
+          </View>
+          <View style={accountUI.divider} />
+          <Text style={accountUI.caption}>
+            {[item.pickupBusinessName, item.pickupAddress]
+              .filter(Boolean)
+              .join(" · ") || "픽업 정보 확인"}
+          </Text>
+        </HistoryCard>
       )}
     />
   );
@@ -666,12 +852,15 @@ function BusinessSection() {
   });
   const [document, setDocument] =
     useState<DocumentPicker.DocumentPickerAsset>();
+  if (query.isLoading)
+    return <Loading variant="form" label="사업자 신청 정보 불러오는 중" />;
   return (
     <View style={{ gap: 20 }}>
       <Heading>사업자 등록 신청</Heading>
+      <Label muted>신청 현황을 확인하고 사업자 정보를 등록하세요.</Label>
       <Message error={query.error ?? task.error} />
       {query.data?.data.recentApplications?.map((item) => (
-        <View key={item.id} style={styles.section}>
+        <View key={item.id} style={accountUI.panel}>
           <Label>
             {item.businessName} · {statusLabel(item.status)}
           </Label>
@@ -699,36 +888,50 @@ function BusinessSection() {
           ) : null}
         </View>
       ))}
-      {Object.entries({
-        businessName: "사업장명",
-        pickupAddress: "사업장 주소",
-        contact: "연락처",
-        taxInvoiceEmail: "세금계산서 이메일 (선택)",
-        businessRegistrationNumber: "사업자등록번호 (숫자 10자리)",
-        openingDate: "개업일자 (YYYYMMDD)",
-        representativeName: "대표자명",
-      }).map(([key, label]) => (
-        <Field
-          key={key}
-          label={label}
-          value={form[key as keyof typeof form]}
-          onChangeText={(value) => setForm({ ...form, [key]: value })}
+      <AccountSection
+        title="사업자 정보"
+        icon={<Building2 size={18} color={colors.muted} />}
+      >
+        {Object.entries({
+          businessName: "사업장명",
+          pickupAddress: "사업장 주소",
+          contact: "연락처",
+          taxInvoiceEmail: "세금계산서 이메일 (선택)",
+          businessRegistrationNumber: "사업자등록번호 (숫자 10자리)",
+          openingDate: "개업일자 (YYYYMMDD)",
+          representativeName: "대표자명",
+        }).map(([key, label]) => (
+          <Field
+            key={key}
+            label={label}
+            value={form[key as keyof typeof form]}
+            onChangeText={(value) => setForm({ ...form, [key]: value })}
+          />
+        ))}
+      </AccountSection>
+      <AccountSection
+        title="증빙 서류"
+        subtitle="PDF·이미지, 최대 10MB"
+        icon={<Upload size={18} color={colors.muted} />}
+      >
+        <Action
+          size="compact"
+          secondary
+          title={document?.name ?? "사업자등록증 선택 (PDF·이미지)"}
+          onPress={() =>
+            void task.run(async () => {
+              const picked = await DocumentPicker.getDocumentAsync({
+                type: ["application/pdf", "image/jpeg", "image/png"],
+                copyToCacheDirectory: true,
+              });
+              if (!picked.canceled) setDocument(picked.assets[0]);
+            })
+          }
         />
-      ))}
+      </AccountSection>
       <Action
-        secondary
-        title={document?.name ?? "사업자등록증 선택 (PDF·이미지)"}
-        onPress={() =>
-          void task.run(async () => {
-            const picked = await DocumentPicker.getDocumentAsync({
-              type: ["application/pdf", "image/jpeg", "image/png"],
-              copyToCacheDirectory: true,
-            });
-            if (!picked.canceled) setDocument(picked.assets[0]);
-          })
-        }
-      />
-      <Action
+        size="compact"
+        leading={<Send size={18} color={colors.background} />}
         title="사업자 등록 신청"
         disabled={
           task.pending ||
@@ -782,15 +985,23 @@ export function InquiriesScreen() {
         title="1:1 문의"
         {...query.feed}
         header={<NavLink href="/my-page/inquiries/new">문의 작성</NavLink>}
+        compact
         renderItem={(item) => (
-          <>
-            <NavLink href={`/my-page/inquiries/${item.id}`}>
-              {item.title}
-            </NavLink>
-            <Label muted>
-              {statusLabel(item.status)} · {date(item.createdAt)}
-            </Label>
-          </>
+          <HistoryCard
+            href={`/my-page/inquiries/${item.id}`}
+            title={item.title ?? "문의 내역"}
+            eyebrow={date(item.createdAt)}
+            badge={
+              <StatusPill
+                label={statusLabel(item.status)}
+                tone={item.status === "CLOSED" ? "neutral" : "warning"}
+              />
+            }
+          >
+            <Text style={accountUI.caption}>
+              문의 #{item.id} · 대화 및 답변 확인
+            </Text>
+          </HistoryCard>
         )}
       />
     </RequireAuth>
@@ -857,16 +1068,16 @@ function InquiryDetail() {
   return (
     <Screen title={query.data?.data.inquiry?.title ?? "문의 상세"}>
       <Message error={query.error ?? task.error} />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="article" /> : null}
       {query.data?.data.messages?.map((message) => (
-        <View key={message.id} style={styles.section}>
+        <View key={message.id} style={accountUI.panel}>
           <Label muted>
             {message.authorNickname} · {date(message.createdAt)}
           </Label>
           <RichContent html={message.content} />
         </View>
       ))}
-      {query.data?.data.inquiry?.status !== "CLOSED" ? (
+      {query.data && query.data.data.inquiry?.status !== "CLOSED" ? (
         <>
           <Editor key={editorKey} onChange={setContent} />
           <Action
@@ -885,9 +1096,9 @@ function InquiryDetail() {
             }
           />
         </>
-      ) : (
+      ) : query.data ? (
         <Label>종료된 문의입니다.</Label>
-      )}
+      ) : null}
       <Action
         secondary
         title="문의 삭제"

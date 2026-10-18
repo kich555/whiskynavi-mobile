@@ -7,7 +7,6 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   useWindowDimensions,
-  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -25,6 +24,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Skeleton, type SkeletonProps } from "./skeleton";
 import { useSession } from "@/lib/providers";
 
 export const colors = {
@@ -599,6 +599,7 @@ export function Photo({
   backgroundColor?: string;
 }) {
   const [failedUri, setFailedUri] = useState<string>();
+  const [loadedUri, setLoadedUri] = useState<string>();
   return (
     <View style={[styles.image, { backgroundColor }]}>
       {!uri || failedUri === uri ? (
@@ -620,10 +621,16 @@ export function Photo({
           source={{ uri }}
           accessibilityLabel={label}
           contentFit="contain"
+          onLoad={() => setLoadedUri(uri)}
           onError={() => setFailedUri(uri)}
           style={StyleSheet.absoluteFill}
         />
       )}
+      {uri && failedUri !== uri && loadedUri !== uri ? (
+        <View style={StyleSheet.absoluteFill}>
+          <Loading variant="media" label={`${label} 이미지 불러오는 중`} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -757,20 +764,21 @@ export function Screen({
     </SafeAreaView>
   );
 }
-export function Loading() {
-  return (
-    <View style={{ padding: 24 }}>
-      <ActivityIndicator
-        accessibilityLabel="불러오는 중"
-        color={colors.accent}
-      />
-    </View>
-  );
+export function Loading(props: SkeletonProps) {
+  return <Skeleton {...props} />;
 }
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { ready, signedIn } = useSession();
   const pathname = usePathname();
-  if (!ready) return <Loading />;
+  if (!ready)
+    return (
+      <Screen>
+        <Loading
+          variant={pathname.startsWith("/my-page") ? "account" : "form"}
+          label="로그인 정보 확인 중"
+        />
+      </Screen>
+    );
   if (!signedIn)
     return (
       <Screen title="로그인이 필요합니다">
@@ -839,6 +847,7 @@ export function InfiniteList<T extends { id?: number }>({
   columnGap = 12,
   rowGap,
   intro,
+  skeleton,
   loadMore,
   loadingMore = false,
   refreshing = false,
@@ -849,6 +858,7 @@ export function InfiniteList<T extends { id?: number }>({
   endText = "모두 확인했어요",
 }: {
   intro?: ReactNode;
+  skeleton?: ReactNode;
   footer?: ReactNode;
   emptyText?: string;
   endText?: string;
@@ -931,7 +941,14 @@ export function InfiniteList<T extends { id?: number }>({
         )}
         ListEmptyComponent={
           loading ? (
-            <Loading />
+            <>
+              {skeleton ?? (
+                <Loading
+                  variant={columns > 1 ? "cards" : "rows"}
+                  columns={columns}
+                />
+              )}
+            </>
           ) : error ? (
             <Action title="다시 불러오기" onPress={refresh} />
           ) : emptyText ? (
@@ -942,7 +959,7 @@ export function InfiniteList<T extends { id?: number }>({
           <View style={{ gap: 16, paddingTop: 16 }}>
             <Message error={nextError} />
             {loadingMore ? (
-              <Loading />
+              <Loading variant="inline" label="추가 목록 불러오는 중" />
             ) : hasNext ? (
               <Action
                 title={nextError ? "추가 목록 다시 불러오기" : "더 보기"}

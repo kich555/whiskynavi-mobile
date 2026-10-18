@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { DarkTheme, ThemeProvider, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Providers } from "@/lib/providers";
+import { Skeleton } from "@/components/native/skeleton";
 import { colors } from "@/components/native/ui";
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -24,13 +25,14 @@ export default function RootLayout() {
         style={{
           flex: 1,
           backgroundColor: colors.background,
-          justifyContent: "center",
+          justifyContent: "flex-start",
+          paddingTop: 64,
           alignItems: "center",
           padding: 24,
           gap: 20,
         }}
       >
-        <ActivityIndicator color="white" accessibilityLabel="앱 준비 중" />
+        <Skeleton variant="app" label="앱 준비 중" />
         <Text style={{ color: "white", fontSize: 16 }}>
           위스키내비를 준비하고 있어요.
         </Text>

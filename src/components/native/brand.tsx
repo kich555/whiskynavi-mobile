@@ -17,7 +17,7 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
-import { colors, NavLink, Sheet } from "./ui";
+import { colors, NavLink, Sheet, Photo } from "./ui";
 import type { BottleResponse } from "@/apis/generated/api";
 export const bottleFrame = { borderWidth: 1, borderColor: colors.line };
 
@@ -198,15 +198,21 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
         }}
       >
         <View style={{ aspectRatio: 1, marginBottom: 8 }}>
-          <Image
-            source={
-              bottle.imgUrl
-                ? { uri: bottle.imgUrl }
-                : require("../../../assets/brand/default-bottle-v2.png")
-            }
-            contentFit="contain"
-            style={[StyleSheet.absoluteFill, { margin: imagePadding }]}
-          />
+          {bottle.imgUrl ? (
+            <View style={[StyleSheet.absoluteFill, { margin: imagePadding }]}>
+              <Photo
+                uri={bottle.imgUrl}
+                label={bottle.name ?? "위스키"}
+                backgroundColor="transparent"
+              />
+            </View>
+          ) : (
+            <Image
+              source={require("../../../assets/brand/default-bottle-v2.png")}
+              contentFit="contain"
+              style={[StyleSheet.absoluteFill, { margin: imagePadding }]}
+            />
+          )}
         </View>
         <Text style={brand.meta}>{bottle.series ?? ""}</Text>
         <Text style={brand.name}>{bottle.name}</Text>

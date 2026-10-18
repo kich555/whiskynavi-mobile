@@ -182,6 +182,80 @@ export function createFixtureServer() {
       reset();
       return send({ reset: true });
     }
+    if (path === "/__test/seed-account" && method === "POST") {
+      state.orders = [
+        structuredClone(order),
+        {
+          ...structuredClone(order),
+          id: 2,
+          orderNumber: "E2E-TICKET-2",
+          itemName: ticket.name,
+          ticketProductId: 2,
+          fulfillmentMethod: "TICKET",
+          orderStatus: "PAYMENT_COMPLETED",
+          delivery: undefined,
+          items: [
+            {
+              orderItemId: 2,
+              ticketProductId: 2,
+              itemName: ticket.name,
+              quantity: 1,
+              unitPrice: 15000,
+              lineTotalPrice: 15000,
+            },
+          ],
+        },
+      ];
+      state.applications = [
+        {
+          id: 1,
+          noticeId: 1,
+          noticeName: notice.noticeName,
+          bottleName: bottle.name,
+          quantity: 2,
+          status: "CONFIRMED",
+          pickupBusinessName: location.businessName,
+          pickupAddress: location.pickupAddress,
+          createdAt: "2026-10-01T12:00:00+09:00",
+        },
+        {
+          id: 2,
+          noticeId: 1,
+          noticeName: "가을 테이스팅 예약",
+          bottleName: bottle.name,
+          quantity: 1,
+          status: "CANCELLED",
+          pickupBusinessName: location.businessName,
+          pickupAddress: location.pickupAddress,
+          createdAt: "2026-09-01T12:00:00+09:00",
+        },
+      ];
+      state.inquiries = [
+        {
+          inquiry: {
+            id: 1,
+            title: "픽업 일정에 대해 문의드립니다",
+            status: "ANSWERED",
+            createdAt: "2026-10-01T12:00:00+09:00",
+          },
+          messages: [
+            {
+              id: 1,
+              content: "<p>픽업 가능한 시간을 알려주세요.</p>",
+              authorNickname: user.username,
+              createdAt: "2026-10-01T12:00:00+09:00",
+            },
+            {
+              id: 2,
+              content: "<p>매장 운영 시간에 방문하실 수 있습니다.</p>",
+              authorNickname: "위스키내비",
+              createdAt: "2026-10-01T13:00:00+09:00",
+            },
+          ],
+        },
+      ];
+      return send({ seeded: true });
+    }
     if (path === "/__test/seed-feed" && method === "POST") {
       const count = body.design ? 2 : 45;
       state.posts = Array.from({ length: count }, (_, i) => ({
@@ -329,7 +403,7 @@ export function createFixtureServer() {
     if (path === "/api/bottles/brand-series")
       return send([
         {
-          brand: "WhiskyNavi",
+          brand: "위스키내비",
           series: [
             {
               name: "Single Cask",
@@ -558,12 +632,24 @@ export function createFixtureServer() {
         });
       return send(item);
     }
-    if (path === "/api/2.0/orders") return send(page(state.orders));
+    if (path === "/api/2.0/orders")
+      return send(
+        page(
+          url.searchParams.get("ticketOnly") === "true"
+            ? state.orders.filter((item) => item.fulfillmentMethod === "TICKET")
+            : state.orders,
+        ),
+      );
     if (path === "/api/orders/guest")
       return url.searchParams.get("guestOrderToken") === "fixture-guest"
         ? send(state.orders[0])
         : send({ message: "조회 정보를 확인해 주세요." }, 404);
-    if (/^\/api\/orders\/\d+$/.test(path)) return send(state.orders[0]);
+    if (/^\/api\/orders\/\d+$/.test(path)) {
+      const item = state.orders.find(
+        (item) => item.id === Number(path.split("/").pop()),
+      );
+      return item ? send(item) : send({ message: "정보가 없습니다." }, 404);
+    }
     if (/\/orders\/\d+\/cancel$/.test(path)) {
       state.orders[0].orderStatus = "CANCEL_REQUESTED";
       return send(state.orders[0]);

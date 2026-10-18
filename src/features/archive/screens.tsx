@@ -196,7 +196,7 @@ export function HomeScreen() {
           style={[StyleSheet.absoluteFill, { backgroundColor: "#00000080" }]}
         />
         {bannersQuery.isPending ? (
-          <Loading />
+          <Loading variant="hero" />
         ) : (
           <View style={{ alignItems: "center", gap: 12 }}>
             <Text
@@ -323,7 +323,9 @@ export function HomeScreen() {
       </View>
       <View style={{ padding: 16, paddingVertical: 24, gap: 16 }}>
         <Heading>NEW ARRIVALS</Heading>
-        {bottlesQuery.isPending ? <Loading /> : null}
+        {bottlesQuery.isPending ? (
+          <Loading variant="cards" columns={fontScale > 1.3 ? 1 : 2} />
+        ) : null}
         {bottlesQuery.isError ? (
           <View style={{ gap: 12 }}>
             <Message error="새 제품을 불러오지 못했어요." />
@@ -383,6 +385,11 @@ export function HomeScreen() {
           </Pressable>
         ))}
       </View>
+      {youtubeQuery.isLoading ? (
+        <View style={{ padding: 16 }}>
+          <Loading variant="inline" label="영상 정보 불러오는 중" />
+        </View>
+      ) : null}
       {youtubeQuery.data?.data.value &&
       /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(
         youtubeQuery.data.data.value,
@@ -476,6 +483,7 @@ function ArchiveContent({
   };
   return (
     <InfiniteList
+      skeleton={<Loading variant="cards" columns={fontScale > 1.3 ? 1 : 2} />}
       columns={fontScale > 1.3 ? 1 : 2}
       title="아카이브"
       intro={
@@ -573,6 +581,9 @@ function ArchiveContent({
           >
             <View style={{ gap: 14 }}>
               <Message error={parameters.error} />
+              {parameters.isLoading ? (
+                <Loading variant="rows" count={3} label="필터 불러오는 중" />
+              ) : null}
               {(
                 [
                   "company",
@@ -747,7 +758,7 @@ export function BottleScreen() {
       <Message
         error={!valid ? "보틀 번호가 올바르지 않습니다." : query.error}
       />
-      {query.isLoading ? <Loading /> : null}
+      {query.isLoading ? <Loading variant="detail" /> : null}
       {bottle ? (
         <View
           style={{
@@ -910,7 +921,7 @@ export function BrandScreen() {
         ))}
       </View>
       <Message error={query.error} />
-      {query.isPending ? <Loading /> : null}
+      {query.isPending ? <Loading variant="rows" /> : null}
       {brandAssets.map((item) => (
         <View
           key={item.name}
@@ -1004,6 +1015,16 @@ function BrandSection({
           />
         ))}
       </Sheet>
+      {products.isLoading ? (
+        <View style={{ paddingHorizontal: 24 }}>
+          <Loading
+            variant="cards"
+            columns={2}
+            count={2}
+            label="브랜드 상품 불러오는 중"
+          />
+        </View>
+      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

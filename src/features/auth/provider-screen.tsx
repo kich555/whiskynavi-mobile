@@ -3,7 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Linking, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { postApiUserNiceidResult } from "@/apis/generated/api";
-import { Action, Label, Message, Screen, styles } from "@/components/native/ui";
+import {
+  Action,
+  Loading,
+  Label,
+  Message,
+  Screen,
+  styles,
+} from "@/components/native/ui";
 import { matchesCallback, validatePaymentReturn } from "@/lib/callback-policy";
 import { externalAppUrl } from "@/lib/external-app-url";
 import { paymentHtml, providerFlow } from "@/lib/provider-flow";
@@ -12,6 +19,7 @@ export default function ProviderScreen() {
   const [flow] = useState(providerFlow.get);
   const [error, setError] = useState<unknown>(null);
   const [popupUrl, setPopupUrl] = useState<string>();
+  const [verifying, setVerifying] = useState(false);
   const handled = useRef(false);
   const canceled = useRef(false);
   useEffect(() => {
@@ -41,6 +49,7 @@ export default function ProviderScreen() {
         );
         return false;
       }
+      setVerifying(true);
       void postApiUserNiceidResult({
         requestNo: flow.requestNo,
         webTransactionId: params.get("web_transaction_id")!,
@@ -59,6 +68,9 @@ export default function ProviderScreen() {
         })
         .catch((error) => {
           if (!canceled.current) setError(error);
+        })
+        .finally(() => {
+          if (!canceled.current) setVerifying(false);
         });
       return false;
     }
@@ -154,8 +166,18 @@ export default function ProviderScreen() {
             }}
           />
         </Screen>
+      ) : verifying ? (
+        <Screen title="인증 결과 확인">
+          <Loading variant="form" label="본인인증 결과 확인 중" />
+        </Screen>
       ) : (
         <WebView
+          startInLoadingState
+          renderLoading={() => (
+            <View style={[styles.screen, { padding: 20 }]}>
+              <Loading variant="form" label="인증·결제 화면 불러오는 중" />
+            </View>
+          )}
           source={
             popupUrl
               ? { uri: popupUrl }
