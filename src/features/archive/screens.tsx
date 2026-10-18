@@ -1,5 +1,4 @@
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
   Pause,
@@ -41,6 +40,8 @@ import {
 } from "@/apis/generated/api";
 import {
   colors,
+  ChoiceRow,
+  FilterChip,
   Action,
   Field,
   Gallery,
@@ -367,8 +368,9 @@ export function HomeScreen() {
               width: "48.3%",
               aspectRatio: 1,
               borderWidth: 1,
-              borderColor: colors.line,
-              backgroundColor: colors.surface,
+              borderColor: "#ffffff26",
+              borderRadius: 16,
+              backgroundColor: "#ffffff08",
               padding: 16,
               alignItems: "center",
               justifyContent: "center",
@@ -539,13 +541,10 @@ function ArchiveContent({
             contentContainerStyle={{ gap: 8 }}
           >
             {(parameters.data?.data.series ?? []).map((value) => (
-              <Pressable
+              <FilterChip
                 key={value}
-                accessibilityRole="button"
-                aria-pressed={filters.series?.includes(value) ?? false}
-                accessibilityState={{
-                  selected: filters.series?.includes(value),
-                }}
+                label={value}
+                selected={filters.series?.includes(value) ?? false}
                 onPress={() =>
                   update({
                     series: filters.series?.includes(value)
@@ -553,39 +552,28 @@ function ArchiveContent({
                       : [...(filters.series ?? []), value],
                   })
                 }
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                  minHeight: 48,
-                  justifyContent: "center",
-                  borderRadius: 24,
-                  borderWidth: 1,
-                  borderColor: colors.line,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  backgroundColor: filters.series?.includes(value)
-                    ? "white"
-                    : colors.surface,
-                })}
-              >
-                <Text
-                  style={{
-                    fontFamily: "NaviSansMedium",
-                    fontSize: 14,
-                    color: filters.series?.includes(value)
-                      ? colors.background
-                      : "white",
-                  }}
-                >
-                  {value}
-                </Text>
-              </Pressable>
+              />
             ))}
           </ScrollView>
           <Sheet
             visible={expanded}
             returnFocusRef={filterRef}
             footer={
-              <Action secondary title="필터 초기화" onPress={resetFilters} />
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Action
+                    secondary
+                    title="필터 초기화"
+                    onPress={resetFilters}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Action
+                    title="결과 보기"
+                    onPress={() => setExpanded(false)}
+                  />
+                </View>
+              </View>
             }
             title="아카이브 필터"
             onDismiss={() => setExpanded(false)}
@@ -728,7 +716,9 @@ function ArchiveContent({
                   minHeight: 48,
                   borderWidth: 1,
                   borderColor: colors.line,
-                  borderRadius: 8,
+                  borderRadius: 16,
+                  backgroundColor: "#ffffff08",
+                  borderTopColor: "#ffffff33",
                   paddingHorizontal: 12,
                   flexDirection: "row",
                   alignItems: "center",
@@ -1065,7 +1055,7 @@ function FilterOptions({
     <View
       style={{
         gap: 12,
-        paddingVertical: 12,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderColor: colors.line,
       }}
@@ -1083,7 +1073,7 @@ function FilterOptions({
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Text style={styles.heading}>{title}</Text>
+        <Text style={[styles.heading, { fontSize: 16 }]}>{title}</Text>
         <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
           <Text style={styles.muted}>
             {selected.length ? `${selected.length}개 선택` : "전체"}
@@ -1108,49 +1098,18 @@ function FilterOptions({
             )
             .slice(0, 100)
             .map((value) => (
-              <Pressable
+              <ChoiceRow
                 key={value}
-                accessibilityRole="checkbox"
-                aria-checked={selected.includes(value)}
-                accessibilityLabel={value}
-                accessibilityState={{ checked: selected.includes(value) }}
-                onPress={() =>
+                label={value}
+                checked={selected.includes(value)}
+                onChange={(checked) =>
                   onChange(
-                    selected.includes(value)
-                      ? selected.filter((item) => item !== value)
-                      : [...selected, value],
+                    checked
+                      ? [...selected, value]
+                      : selected.filter((item) => item !== value),
                   )
                 }
-                style={({ pressed }) => ({
-                  minHeight: 48,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <View
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 4,
-                    borderWidth: 1,
-                    borderColor: selected.includes(value)
-                      ? "white"
-                      : colors.muted,
-                    backgroundColor: selected.includes(value)
-                      ? "white"
-                      : "transparent",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {selected.includes(value) ? (
-                    <Check size={16} color={colors.background} />
-                  ) : null}
-                </View>
-                <Text style={[styles.text, { flex: 1 }]}>{value}</Text>
-              </Pressable>
+              />
             ))}
         </>
       ) : null}

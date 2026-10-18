@@ -109,6 +109,15 @@ try {
           animations: "disabled",
         });
         screenshots++;
+        const firstChoice = page.getByRole("checkbox").first();
+        if (await firstChoice.count()) {
+          await firstChoice.click();
+          await page.screenshot({
+            path: `${directory}/rn-archive-filter-selected.png`,
+            animations: "disabled",
+          });
+          screenshots++;
+        }
       }
       if (label === "rn" && route.name === "sign-in") {
         await page

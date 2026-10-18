@@ -716,3 +716,48 @@ test("banner autoplay advances, pauses during keyboard focus and resumes explici
   await page.clock.fastForward(5100);
   await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
 });
+
+test("glass checkbox rows retain keyboard consent and checkout validation", async ({
+  page,
+}) => {
+  await page.goto("/general-items/1");
+  await page
+    .getByRole("button", { name: "장바구니 담기", exact: true })
+    .click();
+  await page.getByRole("button", { name: "주문서 작성", exact: true }).click();
+  const consent = page.getByRole("checkbox", {
+    name: "주문 정보와 판매·환불 정책을 확인하고 동의합니다.",
+    exact: true,
+  });
+  await expect(consent).not.toBeChecked();
+  await consent.focus();
+  await page.keyboard.press("Space");
+  await expect(consent).toBeChecked();
+  await page.keyboard.press("Space");
+  await expect(consent).not.toBeChecked();
+  const bounds = await consent.boundingBox();
+  expect(bounds!.height).toBeGreaterThanOrEqual(48);
+  await expect(
+    page.getByRole("button", { name: "결제 진행", exact: true }),
+  ).toBeDisabled();
+});
+
+test("visual regression: glass filter selection", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/archive");
+  await page.getByRole("button", { name: "필터", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const choice = page.getByRole("checkbox", {
+    name: "WhiskyNavi",
+    exact: true,
+  });
+  await choice.click();
+  await expect(choice).toBeChecked();
+  await page.getByRole("button", { name: "완료", exact: true }).focus();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot("filter-selected-mobile.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.015,
+    scale: "css",
+  });
+});

@@ -1,5 +1,7 @@
-import { ImageIcon } from "lucide-react-native";
+import { Check, ImageIcon } from "lucide-react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { GlassBackdrop, material } from "./material";
 import { Link, router, type Href, usePathname } from "expo-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
@@ -14,7 +16,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -91,30 +92,34 @@ export const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 4,
+    borderColor: "transparent",
+    borderRadius: 14,
     borderCurve: "continuous",
-    padding: 12,
+    padding: 14,
     fontFamily: "NaviSansMedium",
     color: colors.text,
     fontSize: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: "transparent",
   },
   button: {
-    minHeight: 48,
-    borderRadius: 4,
+    minHeight: 52,
+    borderRadius: 16,
     borderCurve: "continuous",
     paddingVertical: 12,
     paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: material.pearl,
+    borderWidth: 1,
+    borderColor: material.highlight,
+    overflow: "hidden",
+    boxShadow: material.shadow,
   },
   buttonText: {
     fontFamily: "NaviSansMedium",
     color: colors.background,
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "500",
     lineHeight: 24,
   },
   link: {
@@ -166,6 +171,7 @@ export function Action({
   accessibilityLabel?: string;
   secondary?: boolean;
 }) {
+  const [focused, setFocused] = useState(false);
   return (
     <Pressable
       testID={title === "로그인" ? "action-sign-in" : undefined}
@@ -173,19 +179,30 @@ export function Action({
       accessibilityRole="button"
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
         secondary
           ? {
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.line,
+              backgroundColor: pressed ? "#ffffff16" : material.fill,
+              borderColor: material.edge,
             }
           : null,
-        { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 },
+        { opacity: disabled ? 0.42 : pressed ? 0.78 : 1 },
+        focused
+          ? { borderColor: material.focus, boxShadow: "0 0 0 2px #bdd2df55" }
+          : null,
       ]}
     >
+      <LinearGradient
+        pointerEvents="none"
+        colors={
+          secondary ? ["#ffffff0c", "#ffffff00"] : ["#ffffff80", "#ffffff00"]
+        }
+        style={StyleSheet.absoluteFill}
+      />
       <Text
         style={[styles.buttonText, secondary ? { color: colors.text } : null]}
       >
@@ -221,10 +238,32 @@ export function Field({
   inputRef?: import("react").Ref<TextInput>;
   trailing?: ReactNode;
 }) {
+  const [focused, setFocused] = useState(false);
   return (
     <View style={{ gap: 8 }}>
-      <Label>{label}</Label>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <Text
+        style={{ ...styles.muted, fontSize: 13, fontFamily: "NaviSansMedium" }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          minHeight: 54,
+          borderWidth: 1,
+          borderRadius: 16,
+          borderCurve: "continuous",
+          paddingRight: trailing ? 6 : 0,
+          backgroundColor: focused ? "#ffffff0c" : material.fill,
+          borderColor: error
+            ? colors.danger
+            : focused
+              ? material.focus
+              : material.edge,
+          boxShadow: focused ? "0 0 0 2px #bdd2df18" : "none",
+        }}
+      >
         <TextInput
           ref={inputRef}
           aria-invalid={Boolean(error)}
@@ -245,8 +284,17 @@ export function Field({
           placeholderTextColor={colors.muted}
           autoCapitalize="none"
           {...props}
+          onFocus={(event) => {
+            setFocused(true);
+            props.onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            props.onBlur?.(event);
+          }}
           style={[
             styles.input,
+            Platform.OS === "web" ? { outlineWidth: 0 } : null,
             { flex: 1 },
             props.multiline
               ? { minHeight: 140, textAlignVertical: "top" }
@@ -269,6 +317,171 @@ export function Field({
     </View>
   );
 }
+export function ChoiceRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  // RN Web 0.21 handles Enter for checkbox roles, but reserves Space for buttons.
+  const keyboardProps =
+    Platform.OS === "web"
+      ? {
+          onKeyDown: (event: {
+            key: string;
+            repeat: boolean;
+            altKey: boolean;
+            ctrlKey: boolean;
+            metaKey: boolean;
+            preventDefault: () => void;
+          }) => {
+            if (
+              event.key === " " &&
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey
+            ) {
+              event.preventDefault();
+              if (!event.repeat) onChange(!checked);
+            }
+          },
+        }
+      : {};
+  return (
+    <Pressable
+      {...keyboardProps}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      aria-checked={checked}
+      accessibilityState={{ checked }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onPress={() => onChange(!checked)}
+      style={({ pressed }) => ({
+        minHeight: 56,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 16,
+        borderCurve: "continuous",
+        borderWidth: 1,
+        borderColor: focused
+          ? material.focus
+          : checked
+            ? "#b8cedd66"
+            : "#ffffff14",
+        backgroundColor: checked
+          ? material.selected
+          : pressed
+            ? "#ffffff10"
+            : "#ffffff04",
+        opacity: pressed ? 0.75 : 1,
+        overflow: "hidden",
+      })}
+    >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[checked ? "#ffffff0d" : "#ffffff06", "#ffffff00"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 9,
+          borderCurve: "continuous",
+          borderWidth: 1,
+          borderColor: checked ? "#eef5f9" : "#9eafba",
+          backgroundColor: checked ? material.pearl : "#ffffff05",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {checked ? (
+          <Check size={17} strokeWidth={2.5} color={colors.background} />
+        ) : null}
+      </View>
+      <Text
+        style={[
+          styles.text,
+          {
+            flex: 1,
+            fontFamily: checked ? "NaviSansMedium" : "NaviSans",
+            fontSize: 15,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+export function FilterChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      aria-pressed={selected}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 48,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 24,
+        borderCurve: "continuous",
+        borderWidth: 1,
+        borderColor: focused
+          ? material.focus
+          : selected
+            ? "#ffffff80"
+            : material.edge,
+        boxShadow: focused ? "0 0 0 2px #bdd2df44" : "none",
+        backgroundColor: selected ? material.pearl : material.fill,
+        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.75 : 1,
+      })}
+    >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[selected ? "#ffffff55" : "#ffffff0d", "#ffffff00"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <Text
+        style={{
+          ...styles.text,
+          fontFamily: "NaviSansMedium",
+          color: selected ? colors.background : colors.text,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function Toggle({
   label,
   value,
@@ -278,20 +491,9 @@ export function Toggle({
   value: boolean;
   onChange: (value: boolean) => void;
 }) {
-  return (
-    <View
-      style={[styles.row, { justifyContent: "space-between", minHeight: 48 }]}
-    >
-      <Text style={[styles.text, { flex: 1 }]}>{label}</Text>
-      <Switch
-        accessibilityLabel={label}
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: colors.accent }}
-      />
-    </View>
-  );
+  return <ChoiceRow label={label} checked={value} onChange={onChange} />;
 }
+
 export function Message({ error }: { error: unknown }) {
   return error ? (
     <Text accessibilityRole="alert" style={styles.error}>
@@ -715,19 +917,26 @@ export function Sheet({
           onAccessibilityEscape={onDismiss}
           edges={["bottom"]}
           style={{
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            backgroundColor: "transparent",
+            borderRadius: 28,
+            borderCurve: "continuous",
+            borderWidth: 1,
+            borderColor: material.edge,
+            overflow: "hidden",
+            marginHorizontal: 8,
+            marginBottom: 8,
             maxHeight: "88%",
+            boxShadow: "0 18px 48px rgba(0,0,0,0.4)",
           }}
         >
+          <GlassBackdrop />
           <View style={{ padding: 20, gap: 16 }}>
             <View
               style={{
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                backgroundColor: colors.muted,
+                backgroundColor: "#d7e3eb66",
                 alignSelf: "center",
               }}
             />

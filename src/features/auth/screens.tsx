@@ -106,14 +106,6 @@ export function SignInScreen() {
           passwordInput.current?.focus();
         }}
         placeholder="ex) whiskynavi@whiskynavi.com"
-        style={{
-          backgroundColor: "transparent",
-          borderWidth: 0,
-          borderBottomWidth: 1,
-          borderColor: "#ffffff80",
-          borderRadius: 0,
-          paddingHorizontal: 0,
-        }}
         keyboardType="email-address"
         autoComplete="email"
         value={email}
@@ -149,14 +141,6 @@ export function SignInScreen() {
             </Text>
           </Pressable>
         }
-        style={{
-          backgroundColor: "transparent",
-          borderWidth: 0,
-          borderBottomWidth: 1,
-          borderColor: "#ffffff80",
-          borderRadius: 0,
-          paddingHorizontal: 0,
-        }}
         secureTextEntry={!showPassword}
         autoComplete="current-password"
         value={password}

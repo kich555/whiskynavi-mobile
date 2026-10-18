@@ -252,6 +252,11 @@ export const brand = StyleSheet.create({
   icon: {
     width: 48,
     height: 48,
+    borderRadius: 16,
+    borderCurve: "continuous",
+    borderWidth: 1,
+    borderColor: "#ffffff1f",
+    backgroundColor: "#ffffff08",
     alignItems: "center",
     justifyContent: "center",
   },
