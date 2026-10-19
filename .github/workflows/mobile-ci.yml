@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      android_api:
+        description: Android emulator API (35 is the baseline; 36 investigates OS regressions)
+        type: choice
+        options: ["35", "36"]
+        default: "35"
 permissions:
   contents: read
 concurrency:
@@ -85,14 +91,17 @@ jobs:
       - name: Test Android release app
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 36
+          api-level: ${{ inputs.android_api || '35' }}
           arch: x86_64
           profile: pixel_2
           ram-size: 3072M
           heap-size: 512M
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -feature -Vulkan
           disable-animations: true
-          script: npm run test:e2e:android
+          script: |
+            adb shell wm size 720x1280
+            adb shell wm density 320
+            npm run test:e2e:android
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -25,7 +25,7 @@ npm run test:e2e:web
 
 ## Android 네이티브 E2E
 
-필요한 도구: Node 24, JDK 17, Android Studio/SDK, Android API 36의 실행 중인 에뮬레이터, PATH의 adb, Maestro CLI.
+필요한 도구: Node 24, JDK 17, Android Studio/SDK, Android API 35의 실행 중인 에뮬레이터 (기본 CI 기준), PATH의 adb, Maestro CLI.
 
 ```sh
 npm run test:e2e:android
@@ -66,7 +66,7 @@ Maestro는 실제 앱의 네이티브 요소를 조작합니다. iOS 키체인�
 `.github/workflows/mobile-ci.yml`은 Git 저장소에 연결된 뒤 PR/main push에서 실행됩니다.
 
 - quality: 설치, 린트, TypeScript, 단위·계약, Expo Doctor, 웹 번들, Playwright.
-- android-e2e: Linux KVM 에뮬레이터, E2E release APK 빌드, Maestro.
+- android-e2e: Linux KVM의 API35 에뮬레이터, E2E release APK 빌드, Maestro. 수동 workflow_dispatch의 android_api 입력으로 API36도 선택할 수 있다.
 
 서명키·Expo 계정·운영 비밀 없이 실행하는 합성 회귀 파이프라인입니다. 배포용 AAB/IPA 서명·스토어 제출은 별도 단계입니다. iOS는 로컬 러너를 제공하며 Mac CI 비용을 피하도록 기본 CI에서는 실행하지 않습니다. main push/PR에서 자동 실행되며, 원격 job의 성공 여부는 해당 Actions 실행 결과로 별도 확인해야 합니다.
 
