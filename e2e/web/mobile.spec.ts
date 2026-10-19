@@ -134,21 +134,26 @@ test("archive API outage exposes retry without empty success", async ({
     page.getByRole("button", { name: "다시 불러오기" }),
   ).toBeVisible();
 });
-test("public catalogue and account visual smoke", async ({ page }) => {
-  for (const path of [
-    "/",
-    "/archive",
-    "/general-items",
-    "/ticket-products",
-    "/smart-order",
-    "/brand",
-    "/about",
-    "/terms",
-  ]) {
+for (const [path, content] of [
+  ["/", "NEW ARRIVALS"],
+  ["/archive", "아카이브"],
+  ["/general-items", "위스키 테이스팅 글라스"],
+  ["/ticket-products", "위스키 테이스팅 이용권"],
+  ["/smart-order", "매장 픽업 위스키"],
+  ["/brand", "Single Cask"],
+  ["/about", "위스키내비"],
+  ["/terms", "이용약관"],
+]) {
+  test(`public content smoke: ${path}`, async ({ page }) => {
     await page.goto(path);
+    await expect(
+      page.getByText(content, { exact: false }).first(),
+    ).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText("Unmatched Route");
-  }
+  });
+}
+test("archive visual smoke capture", async ({ page }) => {
   await page.goto("/archive");
   await expect(
     page.getByRole("link", { name: "네이비 싱글캐스크 12", exact: true }),
