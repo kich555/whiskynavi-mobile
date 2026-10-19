@@ -77,3 +77,5 @@ GitHub Actions는 품질/브라우저(코드 커버리지 포함)와 Android를 
 - 네이티브 POST 초기화 요청의 누락된 body를 수정했다. 각 flow는 종료 hook에서 미정의 API 호출을 검사하고 소유 fixture를 폐기한다. 네이티브 성공은 선택된 flow 수와 JUnit의 실제 테스트 수가 같고 실패/오류/스킵이 없을 때만 인정한다.
 
 이 기록은 전체 소스 커버리지 100% 달성 선언이 아니다. 실제 Android/iOS 결과는 해당 commit의 CI 및 `native-summary.json`과 함께 확인한다.
+
+Android 실기동에서 추가로 발견한 문제: NativeTabs의 비활성 예약 화면이 미리 마운트되면서 로그인 Sheet가 홈 전체를 가렸다. 예약 화면의 focus 여부로 Sheet 표시를 제한했으며, 홈 → 예약 → 쇼핑 이동 시 모달이 다른 탭에 남지 않는 전용 Maestro flow를 추가했다. 브라우저의 탭 마운트 방식과 다른 네이티브 동작이므로 Android 재실행으로 확인한다.

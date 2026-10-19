@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   router,
   useFocusEffect,
+  useIsFocused,
   useLocalSearchParams,
   type Href,
 } from "expo-router";
@@ -64,6 +65,7 @@ import {
 export function ReservationsScreen() {
   const { signedIn, ready } = useSession();
   const { fontScale } = useWindowDimensions();
+  const isFocused = useIsFocused();
   const [loginOpen, setLoginOpen] = useState(true);
   const query = useInfiniteFeed({
     queryKey: ["reservation-notices"],
@@ -111,7 +113,7 @@ export function ReservationsScreen() {
           </NavLink>
         </View>
         <Sheet
-          visible={loginOpen}
+          visible={isFocused && loginOpen}
           title="로그인이 필요합니다"
           onDismiss={() => setLoginOpen(false)}
         >

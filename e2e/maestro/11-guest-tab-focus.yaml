@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+name: Guest reservation modal belongs only to its focused tab
+onFlowComplete:
+  - runScript: helpers/cleanup.js
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
+- assertNotVisible: 로그인이 필요합니다
+- openLink: whiskynavi-e2e://reservation
+- extendedWaitUntil:
+    visible: 로그인이 필요합니다
+    timeout: 15000
+- openLink: whiskynavi-e2e://shop
+- extendedWaitUntil:
+    visible:
+      id: product-card-1
+    timeout: 15000
+- assertNotVisible: 로그인이 필요합니다
