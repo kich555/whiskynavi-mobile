@@ -1,3 +1,4 @@
+import { checkpointNavigations } from "./navigation-coverage";
 import { randomUUID } from "node:crypto";
 import { test as base, expect, type Page } from "@playwright/test";
 export const test = base.extend<{ blockedOrigins: string[]; safety: void }>({
@@ -38,14 +39,22 @@ export const test = base.extend<{ blockedOrigins: string[]; safety: void }>({
       expect(
         (await request.post("http://127.0.0.1:8787/__test/reset")).ok(),
       ).toBe(true);
-      if (process.env.E2E_CODE_COVERAGE === "1")
-        await page.coverage.startJSCoverage({ resetOnNavigation: false });
-      await use();
+      let stopCoverage: (() => Promise<void>) | undefined;
       if (process.env.E2E_CODE_COVERAGE === "1") {
         const { collectBrowserCoverage } =
           await import("../../scripts/browser-coverage.mjs");
-        await collectBrowserCoverage(page);
+        await page.coverage.startJSCoverage({ resetOnNavigation: false });
+        const restore = checkpointNavigations(page, async () => {
+          await collectBrowserCoverage(page);
+          await page.coverage.startJSCoverage({ resetOnNavigation: false });
+        });
+        stopCoverage = async () => {
+          restore();
+          await collectBrowserCoverage(page);
+        };
       }
+      await use();
+      await stopCoverage?.();
       const state = await (
         await request.get("http://127.0.0.1:8787/__test/state")
       ).json();

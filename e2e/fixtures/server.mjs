@@ -123,6 +123,7 @@ export function createFixtureServer() {
   let state;
   const reset = () => {
     state = {
+      postTypes: [{ id: 1, code: "GENERAL", name: "자유", usages: ["POST"] }],
       entitlements: [],
       posts: [structuredClone(post)],
       bottles: [structuredClone(bottle)],
@@ -189,6 +190,16 @@ export function createFixtureServer() {
     if (path === "/__test/reset" && method === "POST") {
       reset();
       return send({ reset: true });
+    }
+    if (path === "/__test/seed-admin" && method === "POST") {
+      state.user.roles = ["ROLE_USER", "ROLE_ADMIN"];
+      state.postTypes.push({
+        id: 2,
+        code: "REVIEW",
+        name: "후기",
+        usages: ["POST"],
+      });
+      return send({ seeded: true });
     }
     if (path === "/__test/seed-account" && method === "POST") {
       state.orders = [
@@ -514,10 +525,11 @@ export function createFixtureServer() {
     }
     if (/^\/api\/boards\/[^/]+$/.test(path))
       return send({
+        id: 1,
         name: "게시판",
         slug: path.split("/").pop(),
         readOnly: false,
-        postTypes: [{ code: "GENERAL", name: "자유", usages: ["POST"] }],
+        postTypes: state.postTypes,
       });
     if (/\/announcements$/.test(path)) return send(page(state.announcements));
     if (/\/announcements\/\d+$/.test(path))
@@ -537,6 +549,32 @@ export function createFixtureServer() {
           ),
         ),
       );
+    }
+    if (
+      /^\/api\/admin\/boards\/1\/posts\/\d+\/(post-type|delete)$/.test(path)
+    ) {
+      if (
+        req.headers.authorization !== "Bearer fixture-access" ||
+        !state.user.roles.includes("ROLE_ADMIN")
+      )
+        return send({ message: "관리 권한이 없습니다." }, 403);
+      const id = Number(path.split("/").at(-2));
+      const item = state.posts.find((value) => value.id === id);
+      if (!item) return send({ message: "게시글이 없습니다." }, 404);
+      if (path.endsWith("/post-type") && method === "PUT") {
+        const type = state.postTypes.find(
+          (value) => value.id === body.postTypeId,
+        );
+        if (!type) return send({ message: "분류를 확인해 주세요." }, 400);
+        item.postType = type;
+        return send(item);
+      }
+      if (path.endsWith("/delete") && method === "POST") {
+        if (!body.deleteReason?.trim())
+          return send({ message: "삭제 사유가 필요합니다." }, 400);
+        state.posts = state.posts.filter((value) => value.id !== id);
+        return send(undefined);
+      }
     }
     if (/\/posts\/\d+\/comments\/\d+$/.test(path)) {
       const id = Number(path.split("/").pop());
