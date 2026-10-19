@@ -1479,32 +1479,27 @@ for (const viewport of [
   { width: 430, height: 932 },
   { width: 844, height: 390 },
 ]) {
-  test(`account child layouts fit ${viewport.width}x${viewport.height}`, async ({
-    page,
-    request,
-  }) => {
-    test.setTimeout(45_000);
-    await request.post("http://127.0.0.1:8787/__test/seed-account");
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.setViewportSize(viewport);
-    for (const [name, path, heading] of [
-      ["ticket-orders", "/my-page/ticket-orders", "내 이용권 주문"],
-      ["ticket-detail", "/my-page/ticket-orders/2", "주문 정보"],
-      ["reservation-detail", "/my-page/reservations/1", "예약 공고 확인"],
-      [
-        "inquiry-detail",
-        "/my-page/inquiries/1",
-        "픽업 일정에 대해 문의드립니다",
-      ],
-      ["orders", "/my-page?tab=orders", "주문 내역"],
-      ["reservations", "/my-page?tab=reservations", "내 예약 신청"],
-      ["membership", "/my-page?tab=membership", "나의 멤버십"],
-      ["profile", "/my-page?tab=profile", "내 정보 관리"],
-      ["business", "/my-page?tab=business", "사업자 정보"],
-      ["help", "/my-page?tab=faq", "고객 지원"],
-      ["order-detail", "/my-page/order/1", "주문 정보"],
-      ["inquiries", "/my-page/inquiries", "1:1 문의"],
-    ]) {
+  for (const [name, path, heading] of [
+    ["ticket-orders", "/my-page/ticket-orders", "내 이용권 주문"],
+    ["ticket-detail", "/my-page/ticket-orders/2", "주문 정보"],
+    ["reservation-detail", "/my-page/reservations/1", "예약 공고 확인"],
+    ["inquiry-detail", "/my-page/inquiries/1", "픽업 일정에 대해 문의드립니다"],
+    ["orders", "/my-page?tab=orders", "주문 내역"],
+    ["reservations", "/my-page?tab=reservations", "내 예약 신청"],
+    ["membership", "/my-page?tab=membership", "나의 멤버십"],
+    ["profile", "/my-page?tab=profile", "내 정보 관리"],
+    ["business", "/my-page?tab=business", "사업자 정보"],
+    ["help", "/my-page?tab=faq", "고객 지원"],
+    ["order-detail", "/my-page/order/1", "주문 정보"],
+    ["inquiries", "/my-page/inquiries", "1:1 문의"],
+  ]) {
+    test(`account child layout: ${name} at ${viewport.width}x${viewport.height}`, async ({
+      page,
+      request,
+    }) => {
+      await request.post("http://127.0.0.1:8787/__test/seed-account");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.setViewportSize(viewport);
       await login(page, path);
       await expect(
         page.getByRole("heading", { name: heading, exact: true }).first(),
@@ -1521,6 +1516,6 @@ for (const viewport of [
           scale: "css",
           path: `artifacts/account-${name}-${viewport.width}.png`,
         });
-    }
-  });
+    });
+  }
 }
