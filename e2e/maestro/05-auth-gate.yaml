@@ -6,6 +6,9 @@ onFlowComplete:
 - runScript: helpers/reset.js
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
 - openLink: whiskynavi-e2e://my-page/inquiries
 - assertVisible: 로그인이 필요합니다
 - assertVisible: 로그인하고 계속하기

@@ -91,3 +91,25 @@ describe("reservation and order policies", () => {
   it("allows confirmation for pickup awaiting receipt", () =>
     expect(isReceiptCompletionAllowed("RECEIPT_PENDING", "PICKUP")).toBe(true));
 });
+
+it("rejects malformed callback URLs without throwing from matching", () => {
+  expect(matchesCallback("not a URL", "https://whiskynavi.com/success")).toBe(
+    false,
+  );
+});
+it("requires known cancellable states and handles smart-order pickup separately", () => {
+  expect(isOrderCancellationAllowed()).toBe(false);
+  expect(isOrderCancellationAllowed("ORDER_REQUESTED")).toBe(true);
+  expect(isOrderCancellationAllowed("SHIPPING")).toBe(false);
+  expect(isOrderCancellationAllowed("RECEIPT_PENDING", undefined, false)).toBe(
+    false,
+  );
+  expect(isOrderCancellationAllowed("RECEIPT_PENDING", undefined, true)).toBe(
+    true,
+  );
+  expect(isOrderCancellationAllowed("RECEIPT_COMPLETED", undefined, true)).toBe(
+    false,
+  );
+  expect(isReceiptCompletionAllowed(undefined, "PICKUP")).toBe(false);
+  expect(isReceiptCompletionAllowed("RECEIPT_COMPLETED", "PICKUP")).toBe(false);
+});

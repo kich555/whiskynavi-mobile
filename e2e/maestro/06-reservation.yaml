@@ -6,6 +6,9 @@ onFlowComplete:
 - runScript: helpers/reset.js
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
 - runFlow: helpers/login.yaml
 - openLink: whiskynavi-e2e://reservation/1
 - extendedWaitUntil:

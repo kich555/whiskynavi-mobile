@@ -6,6 +6,9 @@ onFlowComplete:
 - runScript: helpers/reset.js
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
 - openLink: whiskynavi-e2e://shop
 - extendedWaitUntil:
     visible:
