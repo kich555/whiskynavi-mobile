@@ -12,6 +12,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   outputDir: "artifacts/playwright",
   reporter: [
+    ["./e2e/reporter.mjs"],
     ["list"],
     ["junit", { outputFile: "artifacts/playwright.xml" }],
     ["json", { outputFile: "artifacts/playwright.json" }],

@@ -6,6 +6,20 @@ const available = (command, args) => {
   const result = spawnSync(command, args, { stdio: "pipe" });
   return !result.error && result.status === 0;
 };
+const booted = () => {
+  const result = spawnSync(
+    "xcrun",
+    ["simctl", "list", "devices", "booted", "--json"],
+    { encoding: "utf8" },
+  );
+  try {
+    return Object.values(JSON.parse(result.stdout).devices)
+      .flat()
+      .some((device) => device.state === "Booted" && device.isAvailable);
+  } catch {
+    return false;
+  }
+};
 const checks = {
   node: Number(process.versions.node.split(".")[0]) >= 22,
   maestro: available("maestro", ["--version"]),
@@ -20,7 +34,8 @@ const checks = {
       }
     : {
         macOS: process.platform === "darwin",
-        xcode: available("xcrun", ["simctl", "list", "devices", "booted"]),
+        xcode: available("xcodebuild", ["-version"]),
+        bootedSimulator: booted(),
       }),
 };
 console.log(

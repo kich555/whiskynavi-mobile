@@ -139,7 +139,9 @@ export function createFixtureServer() {
       cart: [],
       orders: [structuredClone(order)],
       user: structuredClone(user),
+      password: "mobile-e2e-123",
       requests: [],
+      unhandled: [],
     };
   };
   reset();
@@ -163,6 +165,11 @@ export function createFixtureServer() {
     const method = req.method;
     const page = (content) => paginate(content, url.searchParams);
     const send = (value, status = 200) => {
+      if (value === undefined) {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(value));
     };
@@ -323,16 +330,16 @@ export function createFixtureServer() {
         inquiries: state.inquiries.length,
         applications: state.applications.length,
         requests: state.requests,
+        unhandled: state.unhandled,
       });
     state.requests.push({ method, path, query: url.search });
     if (path === "/api/auth/login")
-      return body.email === "rn@example.test" &&
-        body.password === "mobile-e2e-123"
+      return body.email === state.user.email && body.password === state.password
         ? send({
             accessToken: "fixture-access",
             refreshToken: "fixture-refresh",
             userId: 7,
-            username: user.username,
+            username: state.user.username,
           })
         : send({ message: "이메일 또는 비밀번호가 올바르지 않습니다." }, 401);
     if (
@@ -370,6 +377,19 @@ export function createFixtureServer() {
     )
       return send({ message: "로그인이 필요합니다." }, 401);
     if (path === "/api/users/me") return send(state.user);
+    if (path === "/api/users/me/email" && method === "PUT") {
+      state.user.email = body.newEmail;
+      return send({
+        accessToken: "fixture-access",
+        refreshToken: "fixture-refresh",
+      });
+    }
+    if (path === "/api/auth/change-password" && method === "PUT") {
+      if (body.currentPassword !== state.password)
+        return send({ message: "현재 비밀번호가 일치하지 않습니다." }, 400);
+      state.password = body.newPassword;
+      return send(undefined);
+    }
     if (path === "/api/users/me/nickname") {
       state.user.username = body.nickname;
       return send({
@@ -399,6 +419,19 @@ export function createFixtureServer() {
       ]);
     if (path === "/api/users/businesses/pickup-locations")
       return send(page([location]));
+    if (path === "/api/kv-stores/youtube_embed_url")
+      return send({ key: "youtube_embed_url", value: "" });
+    if (/^\/api\/2\.0\/smart-orders\/\d+$/.test(path)) {
+      const item = state.orders.find(
+        (item) => item.id === Number(path.split("/").pop()),
+      );
+      return item
+        ? send({
+            order: { ...item, smartOrder: true, fulfillmentMethod: "PICKUP" },
+            pickupLocation: location,
+          })
+        : send({ message: "정보가 없습니다." }, 404);
+    }
     if (path === "/api/banners") return send(page([]));
     if (path === "/api/bottles/brand-series")
       return send([
@@ -488,6 +521,17 @@ export function createFixtureServer() {
           ),
         ),
       );
+    }
+    if (/\/posts\/\d+\/comments\/\d+$/.test(path)) {
+      const id = Number(path.split("/").pop());
+      const item = state.comments.find((item) => item.id === id);
+      if (!item) return send({ message: "정보가 없습니다." }, 404);
+      if (method === "DELETE") {
+        state.comments = state.comments.filter((item) => item.id !== id);
+        return send(undefined);
+      }
+      if (method === "PUT") Object.assign(item, body);
+      return send(item);
     }
     if (/\/posts\/\d+\/comments$/.test(path)) {
       if (method === "POST") {
@@ -655,6 +699,7 @@ export function createFixtureServer() {
       return send(state.orders[0]);
     }
     if (path === "/api/2.0/orders/entitlements/lookup") return send([]);
+    state.unhandled.push({ method, path });
     return send({ message: `Fixture route missing: ${method} ${path}` }, 404);
   });
 }

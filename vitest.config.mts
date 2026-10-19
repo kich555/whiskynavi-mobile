@@ -6,5 +6,12 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     environment: "node",
     restoreMocks: true,
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/apis/generated/**"],
+      reporter: ["text-summary", "json-summary", "json", "html"],
+      reportsDirectory: "artifacts/unit-coverage",
+    },
   },
 });

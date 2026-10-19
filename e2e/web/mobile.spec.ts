@@ -1,4 +1,4 @@
-import { test, expect, login, blockedOrigins } from "./fixtures";
+import { test, expect, login } from "./fixtures";
 import type { Page, Route } from "@playwright/test";
 test("archive search, empty state and full page detail", async ({ page }) => {
   await page.goto("/archive");
@@ -224,6 +224,7 @@ test("unknown routes offer a native recovery screen", async ({ page }) => {
 
 test("network guard aborts non-fixture requests before they leave the browser", async ({
   page,
+  blockedOrigins,
 }) => {
   await page.goto("/");
   const rejected = await page.evaluate(() =>
@@ -233,10 +234,10 @@ test("network guard aborts non-fixture requests before they leave the browser", 
     ),
   );
   expect(rejected).toBe(true);
-  expect(blockedOrigins.get(page)).toEqual([
+  expect(blockedOrigins).toEqual([
     "GET https://example.invalid/e2e-guard-canary",
   ]);
-  blockedOrigins.get(page)!.length = 0;
+  blockedOrigins.length = 0;
 });
 
 for (const screen of [

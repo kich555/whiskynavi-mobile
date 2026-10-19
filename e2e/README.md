@@ -1,5 +1,7 @@
 # Mobile tests
 
+최신 실행 명령·격리·캐시·실행 리포트·정확한 커버리지 경계는 [E2E 인프라](../docs/e2e-infrastructure.md)를 따른다. 아래 날짜별 수치는 과거 검증 기록이다.
+
 ## 구성
 
 - `npm test`: 인증 갱신, 결제 콜백 대조, 예약 기간, 주문 정책, 마이그레이션 URL 계약 검사.
@@ -31,7 +33,7 @@ npm run test:e2e:android
 
 러너는 E2E 전용 앱 `com.whiskynavi.mobile.e2e`를 만들며 운영 앱과 구분합니다. release 빌드에 JS를 포함하므로 Metro를 띄울 필요가 없습니다. `adb reverse`로 에뮬레이터에서 fixture 서버에 연결합니다. HTTP는 E2E 앱에서만 허용합니다. 첫 빌드는 Android 의존성 다운로드 때문에 오래 걸릴 수 있습니다. 생성되는 android/는 커밋하지 않습니다.
 
-테스트 전에 기존 Metro와 8787 포트의 서버를 종료하세요. 실기기에서는 합성 fixture만 사용하고 `adb reverse` 연결을 확인하세요. 러너는 앱 데이터를 초기화합니다.
+8787 포트는 테스트 전용이다. 기존 Metro는 종료할 필요가 없다. 실기기에서는 합성 fixture만 사용하고 `adb reverse` 연결을 확인하세요. 러너는 앱 데이터를 초기화합니다.
 
 ## iOS 네이티브 E2E
 

@@ -1,0 +1,66 @@
+# RN E2E infrastructure
+
+## 실행 계약
+
+외부 NICE·토스·카드사 앱과 OS 파일/사진 선택기 자체는 이 합성 회귀의 실행 대상이 아니다. 외부 결과를 받는 앱의 URL·금액·세션 검증과 오류 UI는 대상이다. API는 실행 소유 메모리 서버이며 실제 백엔드의 저장·권한·결제 성공을 증명하지 않는다.
+
+`npm run test:e2e:web`의 100%는 **등록된 RN 라우트 준비 상태와 선택된 사용자 시나리오의 실행 통과율**이다. 소스의 모든 문장·분기, 모든 사용자 역할, iOS/Android 모든 조작의 100%와 구분한다. `test:coverage`는 단위 테스트 코드 범위를, `test:e2e:coverage`는 Chromium에서 실행한 RN 소스 범위를 각각 측정한다. 실행되지 않은 플랫폼 파일도 0%로 남긴다. 네이티브 성공은 Maestro 실행 결과로만 보고한다.
+
+## 로컬 CLI
+
+최초 설치는 `npm ci`, `npx playwright install chromium`이다.
+
+| 명령                                       | 목적                                                          |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| `npm run test:e2e:smoke`                   | 인증·아카이브·장바구니·게시판·예약·외부 요청 차단의 빠른 검사 |
+| `npm run test:e2e:routes`                  | 모든 라우트의 정상 내용/콜백 경계                             |
+| `npm run test:e2e:web`                     | 전체 브라우저 회귀, 누락·스킵·재시도 없는 gate                |
+| `npm run test:e2e:stability`               | 전체 회귀 3회, 새 context와 독립 API 상태로 실행              |
+| `npm run test:e2e:web -- journeys.spec.ts` | 특정 파일만 디버깅; 전체 완료로 보고하지 않음                 |
+| `npm run test:coverage`                    | 단위 테스트의 소스 커버리지                                   |
+| `npm run test:e2e:coverage`                | 전체 E2E + 원본 소스맵 기반 코드 커버리지                     |
+| `npm run test:e2e:build`                   | E2E 웹 번들 준비만 실행                                       |
+| `npm run test:e2e:doctor -- android`       | 네이티브 필수 도구 확인                                       |
+| `npm run test:e2e:android`                 | release APK 빌드/설치와 실제 Maestro 실행                     |
+| `npm run test:e2e:ios`                     | 전체 Xcode가 있는 Mac에서 시뮬레이터 실행                     |
+
+기존 개발 서버를 종료할 필요는 없다. 8787/19006은 테스트가 소유한다. 이미 사용 중이면 다른 서버를 재사용하지 않고 실패한다. `.e2e-run.lock`은 같은 checkout의 중복 CLI 실행을 차단한다. 비정상 강제 종료 후에는 owner.json의 PID가 종료됐음을 확인한 뒤 잠금만 제거한다. API 데이터는 서버 종료와 함께 사라진다.
+
+## 속도와 격리
+
+- 브라우저 4 workers(로컬), 2 workers(CI). 각 테스트가 임의 ID를 가진 독립 메모리 API를 사용한다. 한 테스트의 reset/주문/게시글 변경이 다른 테스트에 영향을 주지 않는다. 종료 때 소유 세션을 폐기하며 cleanup 실패도 테스트 실패다.
+- 웹 export는 소스·정적 파일·의존성 lock·설정·Node/OS/아키텍처와 산출물 바이트의 해시가 모두 일치할 때만 재사용한다. 파일 변경/추가/삭제 및 산출물 손상은 재생성을 유발한다. `.env`는 E2E export에 로딩하지 않는다.
+- Android는 연결된 기기의 ABI만 빌드한다. CI는 `--build-only --arch=x86_64`로 먼저 빌드하고 에뮬레이터를 부팅한다. 동일한 입력과 APK 해시가 확인되면 재설치/테스트만 수행한다. 변경된 UI/의존성을 오래된 APK로 검사하지 않는다. Gradle dependency/build cache도 사용한다.
+- 웹/네이티브 테스트는 서로 다른 APK·Metro 캐시·API 설정을 사용한다. 배포 번들 검사는 별도로 fixture 주소/계정 유출을 차단한다.
+- 네이티브 러너는 중단 시 자식 빌드/테스트와 fixture를 종료하고 adb reverse를 정리한다. 실행 상한은 50분, CI job 상한은 60분이다.
+
+## 신뢰성 gate
+
+- 재시도 0. 재시도 후 통과를 정상 통과율에 포함하지 않는다.
+- 모든 브라우저 요청을 loopback origin만 허용하도록 검사하며 service worker는 차단한다.
+- 렌더링 예외, 예상하지 못한 fixture API, cleanup 실패는 테스트 실패다.
+- `e2e/route-cases.json`의 대상 파일을 실제 `src/app` 파일 목록과 비교한다. 새 라우트가 생겼는데 oracle이 없으면 단위 검사가 실패한다.
+- route oracle은 실제 내용을 기다린다. 콜백 성공 URL은 위조된 결과를 승인하지 않는지 추가 검사한다. 사용자 변경 흐름은 화면→API→화면 및 재로그인 후 저장 상태로 확인한다.
+- 웹 미리보기 인증은 메모리 저장소이므로 document reload가 로그아웃한다. 저장 결과 검증은 새 로그인 뒤 재조회하며, 웹 reload를 네이티브 키체인 유지 테스트로 해석하지 않는다.
+- 15개 주요 API 화면에서 503 표시, 빈 성공 상태 미표시, 서버 복구 후 정상 내용을 검사한다. 스켈레톤·무한스크롤·새로고침·접근성·시각 회귀는 기존 suite를 재사용한다.
+
+## 결과와 CI
+
+`artifacts/e2e-summary.json`은 최신 결과이고 `artifacts/runs/<UUID>.json`은 덮어쓰지 않는 실행별 결과다. commit, 소스/테스트 fingerprint, 발견된 테스트 수, 각 시도·재시도·시간, 미검증 라우트를 기록한다. 부분 실행은 전체 완료가 false다. JUnit·JSON·실패 trace/스크린샷도 남는다. 모두 합성 데이터만 사용한다.
+
+GitHub Actions는 품질/브라우저(코드 커버리지 포함)와 Android를 독립 job으로 실행한다. Android SDK는 폐기된 `tools` 패키지 대신 platform-tools를 설치한다. Node24, JDK17, API36, Maestro2.11.0을 사용한다. npm/Gradle/APK/웹 export 캐시를 사용하고 실패뿐 아니라 성공 결과도 업로드한다. 전체 APK는 테스트 진단 artifact에 포함하지 않는다. iOS는 로컬 러너를 제공하지만 기본 Linux CI의 통과로 iOS 성공을 주장하지 않는다.
+
+웹 원본 디자인 비교는 인접 웹 checkout과 별도 비교 서버가 필요한 별도 실행이다. 기본 회귀에서 제외하되 skip을 성공으로 세지 않는다. `COMPARE_WEB_ORIGIN`을 설정하면 기존 비교 테스트가 추가된다.
+
+## 아직 증명하지 않은 범위
+
+- 소스 전체 line/branch 100%, 모든 역할/상품옵션/권한 조합.
+- 실제 백엔드의 저장·업로드·권한·멤버십·이용권 발급/사용 계약.
+- 실제 NICE/PG 및 외부 앱 전환.
+- iOS 네이티브 전체 회귀 및 Android 모든 화면/분기의 100%.
+
+이 항목은 라우트 준비 상태 100%로 대체하지 않는다. 추가 시나리오는 기존 test fixture와 실행 리포트를 확장한다.
+
+## 코드 커버리지 읽기
+
+`artifacts/unit-coverage/index.html`과 `artifacts/browser-coverage/index.html`에서 실행되지 않은 코드를 확인한다. 자동 생성 API와 타입 선언을 제외하고 앱의 직접 작성한 소스를 분모에 포함한다. 외부 라이브러리의 내부 소스는 제외하며 테스트하지 않은 파일을 분모에서 제거하지 않는다. 일반 테스트는 minified export를 사용하고 코드 측정 모드는 동일 소스의 non-minified export와 source map을 사용한다. 캐시는 두 모드를 구분한다. 이 보고서는 Hermes/iOS/Android 런타임 계측을 대신하지 않는다.

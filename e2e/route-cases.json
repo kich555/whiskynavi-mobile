@@ -1,0 +1,394 @@
+[
+  {
+    "route": "/",
+    "path": "/",
+    "target": "src/app/(main)/(tabs)/index.tsx",
+    "expect": "NEW ARRIVALS",
+    "auth": false
+  },
+  {
+    "route": "/archive",
+    "path": "/archive",
+    "target": "src/app/(main)/(tabs)/archive.tsx",
+    "expect": "아카이브",
+    "auth": false
+  },
+  {
+    "route": "/archive/[bottleId]",
+    "path": "/archive/1",
+    "target": "src/app/(main)/archive/[bottleId].tsx",
+    "expect": "테이스팅 노트",
+    "auth": false
+  },
+  {
+    "route": "/brand",
+    "path": "/brand",
+    "target": "src/app/(main)/brand.tsx",
+    "expect": "Single Cask",
+    "auth": false
+  },
+  {
+    "route": "/about",
+    "path": "/about",
+    "target": "src/app/(main)/about.tsx",
+    "expect": "위스키내비",
+    "auth": false
+  },
+  {
+    "route": "/terms",
+    "path": "/terms",
+    "target": "src/app/(main)/terms.tsx",
+    "expect": "이용약관",
+    "auth": false
+  },
+  {
+    "route": "/shop",
+    "path": "/shop",
+    "target": "src/app/(main)/(tabs)/shop.tsx",
+    "expect": "위스키 테이스팅 글라스",
+    "auth": false
+  },
+  {
+    "route": "/sign-in",
+    "path": "/sign-in",
+    "target": "src/app/(main)/sign-in.tsx",
+    "expect": "이메일 주소",
+    "auth": false
+  },
+  {
+    "route": "/sign-up",
+    "path": "/sign-up",
+    "target": "src/app/(main)/sign-up.tsx",
+    "expect": "본인인증 시작",
+    "auth": false
+  },
+  {
+    "route": "/find-password",
+    "path": "/find-password",
+    "target": "src/app/(main)/find-password.tsx",
+    "expect": "비밀번호 초기화",
+    "auth": false
+  },
+  {
+    "route": "/reservation",
+    "path": "/reservation",
+    "target": "src/app/(main)/(tabs)/reservation.tsx",
+    "expect": "싱글캐스크 예약",
+    "auth": true
+  },
+  {
+    "route": "/reservation/[noticeId]",
+    "path": "/reservation/1",
+    "target": "src/app/(main)/reservation/[noticeId].tsx",
+    "expect": "싱글캐스크 예약",
+    "auth": true
+  },
+  {
+    "route": "/my-page/reservations/[applicationId]",
+    "path": "/my-page/reservations/1",
+    "target": "src/app/(main)/my-page/reservations/[applicationId].tsx",
+    "expect": "싱글캐스크 예약",
+    "auth": true
+  },
+  {
+    "route": "/my-page",
+    "path": "/my-page",
+    "target": "src/app/(main)/(tabs)/my-page.tsx",
+    "expect": "모바일테스터님",
+    "auth": true
+  },
+  {
+    "route": "/my-page/inquiries",
+    "path": "/my-page/inquiries",
+    "target": "src/app/(main)/my-page/inquiries.tsx",
+    "expect": "픽업 일정에 대해 문의드립니다",
+    "auth": true
+  },
+  {
+    "route": "/my-page/inquiries/new",
+    "path": "/my-page/inquiries/new",
+    "target": "src/app/(main)/my-page/inquiries/new.tsx",
+    "expect": "문의 등록",
+    "auth": true
+  },
+  {
+    "route": "/my-page/inquiries/[inquiryId]",
+    "path": "/my-page/inquiries/1",
+    "target": "src/app/(main)/my-page/inquiries/[inquiryId].tsx",
+    "expect": "픽업 가능한 시간을 알려주세요.",
+    "auth": true
+  },
+  {
+    "route": "/my-page/order/[id]",
+    "path": "/my-page/order/1",
+    "target": "src/app/(main)/my-page/order/[id].tsx",
+    "expect": "주문번호 E2E-ORDER-1",
+    "auth": true
+  },
+  {
+    "route": "/my-page/ticket-orders/[id]",
+    "path": "/my-page/ticket-orders/2",
+    "target": "src/app/(main)/my-page/ticket-orders/[id].tsx",
+    "expect": "주문번호 E2E-TICKET-2",
+    "auth": true
+  },
+  {
+    "route": "/smart-orders/[orderId]",
+    "path": "/smart-orders/1",
+    "target": "src/app/(main)/smart-orders/[orderId].tsx",
+    "expect": "주문번호 E2E-ORDER-1",
+    "auth": true
+  },
+  {
+    "route": "/my-page/ticket-orders",
+    "path": "/my-page/ticket-orders",
+    "target": "src/app/(main)/my-page/ticket-orders.tsx",
+    "expect": "내 이용권 주문",
+    "auth": true
+  },
+  {
+    "route": "/orders/guest",
+    "path": "/orders/guest",
+    "target": "src/app/(main)/orders/guest.tsx",
+    "expect": "비회원 주문 조회 코드",
+    "auth": false
+  },
+  {
+    "route": "/general-items/cart",
+    "path": "/general-items/cart",
+    "target": "src/app/(main)/general-items/cart.tsx",
+    "expect": "장바구니가 비어 있습니다.",
+    "auth": false
+  },
+  {
+    "route": "/general-items/cart/order",
+    "path": "/general-items/cart/order",
+    "target": "src/app/(main)/general-items/cart/order.tsx",
+    "expect": "주문자 이름",
+    "auth": false
+  },
+  {
+    "route": "/general-items/delivery-order",
+    "path": "/general-items/delivery-order?saleId=1",
+    "target": "src/app/(main)/general-items/delivery-order.tsx",
+    "expect": "주문자 이름",
+    "auth": false
+  },
+  {
+    "route": "/ticket-products/order",
+    "path": "/ticket-products/order?saleId=2",
+    "target": "src/app/(main)/ticket-products/order.tsx",
+    "expect": "주문자 이름",
+    "auth": false
+  },
+  {
+    "route": "/smart-order/[productId]/order",
+    "path": "/smart-order/3/order",
+    "target": "src/app/(main)/smart-order/[productId]/order.tsx",
+    "expect": "주문자 이름",
+    "auth": true
+  },
+  {
+    "route": "/general-items",
+    "path": "/general-items",
+    "target": "src/app/(main)/general-items.tsx",
+    "expect": "위스키 테이스팅 글라스",
+    "auth": false
+  },
+  {
+    "route": "/general-items/[saleId]",
+    "path": "/general-items/1",
+    "target": "src/app/(main)/general-items/[saleId].tsx",
+    "expect": "위스키 테이스팅 글라스",
+    "auth": false
+  },
+  {
+    "route": "/ticket-products",
+    "path": "/ticket-products",
+    "target": "src/app/(main)/ticket-products.tsx",
+    "expect": "위스키 테이스팅 이용권",
+    "auth": false
+  },
+  {
+    "route": "/ticket-products/[saleId]",
+    "path": "/ticket-products/2",
+    "target": "src/app/(main)/ticket-products/[saleId].tsx",
+    "expect": "위스키 테이스팅 이용권",
+    "auth": false
+  },
+  {
+    "route": "/smart-order",
+    "path": "/smart-order",
+    "target": "src/app/(main)/smart-order.tsx",
+    "expect": "매장 픽업 위스키",
+    "auth": false
+  },
+  {
+    "route": "/smart-order/[productId]",
+    "path": "/smart-order/3",
+    "target": "src/app/(main)/smart-order/[productId].tsx",
+    "expect": "매장 픽업 위스키",
+    "auth": false
+  },
+  {
+    "route": "/board/community",
+    "path": "/board/community",
+    "target": "src/app/(main)/board/community.tsx",
+    "expect": "첫 번째 위스키 이야기",
+    "auth": false
+  },
+  {
+    "route": "/board/community/posts/[postId]",
+    "path": "/board/community/posts/1",
+    "target": "src/app/(main)/board/community/posts/[postId].tsx",
+    "expect": "위스키를 함께 알아가는 공간입니다.",
+    "auth": false
+  },
+  {
+    "route": "/board/community/announcements/[announcementId]",
+    "path": "/board/community/announcements/80",
+    "target": "src/app/(main)/board/community/announcements/[announcementId].tsx",
+    "expect": "위스키를 함께 알아가는 공간입니다.",
+    "auth": false
+  },
+  {
+    "route": "/board/community/posts/new",
+    "path": "/board/community/posts/new",
+    "target": "src/app/(main)/board/community/posts/new.tsx",
+    "expect": "저장",
+    "auth": true
+  },
+  {
+    "route": "/board/community/posts/[postId]/edit",
+    "path": "/board/community/posts/1/edit",
+    "target": "src/app/(main)/board/community/posts/[postId]/edit.tsx",
+    "expect": "저장",
+    "auth": true
+  },
+  {
+    "route": "/board/news",
+    "path": "/board/news",
+    "target": "src/app/(main)/board/news.tsx",
+    "expect": "첫 번째 위스키 이야기",
+    "auth": false
+  },
+  {
+    "route": "/board/news/posts/[postId]",
+    "path": "/board/news/posts/1",
+    "target": "src/app/(main)/board/news/posts/[postId].tsx",
+    "expect": "위스키를 함께 알아가는 공간입니다.",
+    "auth": false
+  },
+  {
+    "route": "/board/news/announcements/[announcementId]",
+    "path": "/board/news/announcements/80",
+    "target": "src/app/(main)/board/news/announcements/[announcementId].tsx",
+    "expect": "위스키를 함께 알아가는 공간입니다.",
+    "auth": false
+  },
+  {
+    "route": "/board/news/posts/new",
+    "path": "/board/news/posts/new",
+    "target": "src/app/(main)/board/news/posts/new.tsx",
+    "expect": "저장",
+    "auth": true
+  },
+  {
+    "route": "/board/news/posts/[postId]/edit",
+    "path": "/board/news/posts/1/edit",
+    "target": "src/app/(main)/board/news/posts/[postId]/edit.tsx",
+    "expect": "저장",
+    "auth": true
+  },
+  {
+    "route": "/general-items/cart/order/toss/success",
+    "path": "/general-items/cart/order/toss/success",
+    "target": "src/app/(main)/general-items/cart/order/toss/success.tsx",
+    "expect": "결제 승인 확인",
+    "auth": false
+  },
+  {
+    "route": "/general-items/cart/order/toss/fail",
+    "path": "/general-items/cart/order/toss/fail",
+    "target": "src/app/(main)/general-items/cart/order/toss/fail.tsx",
+    "expect": "결제가 완료되지 않았습니다",
+    "auth": false
+  },
+  {
+    "route": "/general-items/delivery-order/toss/success",
+    "path": "/general-items/delivery-order/toss/success",
+    "target": "src/app/(main)/general-items/delivery-order/toss/success.tsx",
+    "expect": "결제 승인 확인",
+    "auth": false
+  },
+  {
+    "route": "/general-items/delivery-order/toss/fail",
+    "path": "/general-items/delivery-order/toss/fail",
+    "target": "src/app/(main)/general-items/delivery-order/toss/fail.tsx",
+    "expect": "결제가 완료되지 않았습니다",
+    "auth": false
+  },
+  {
+    "route": "/orders/payment/success",
+    "path": "/orders/payment/success",
+    "target": "src/app/(main)/orders/payment/success.tsx",
+    "expect": "결제 승인 확인",
+    "auth": false
+  },
+  {
+    "route": "/orders/payment/fail",
+    "path": "/orders/payment/fail",
+    "target": "src/app/(main)/orders/payment/fail.tsx",
+    "expect": "결제가 완료되지 않았습니다",
+    "auth": false
+  },
+  {
+    "route": "/ticket-products/order/toss/success",
+    "path": "/ticket-products/order/toss/success",
+    "target": "src/app/(main)/ticket-products/order/toss/success.tsx",
+    "expect": "결제 승인 확인",
+    "auth": false
+  },
+  {
+    "route": "/ticket-products/order/toss/fail",
+    "path": "/ticket-products/order/toss/fail",
+    "target": "src/app/(main)/ticket-products/order/toss/fail.tsx",
+    "expect": "결제가 완료되지 않았습니다",
+    "auth": false
+  },
+  {
+    "route": "/smart-order/toss/success",
+    "path": "/smart-order/toss/success",
+    "target": "src/app/(main)/smart-order/toss/success.tsx",
+    "expect": "결제 승인 확인",
+    "auth": false
+  },
+  {
+    "route": "/smart-order/toss/fail",
+    "path": "/smart-order/toss/fail",
+    "target": "src/app/(main)/smart-order/toss/fail.tsx",
+    "expect": "결제가 완료되지 않았습니다",
+    "auth": false
+  },
+  {
+    "route": "/nice/callback",
+    "path": "/nice/callback",
+    "target": "src/app/nice/callback.tsx",
+    "expect": "진행 중인 인증 화면으로 돌아가 주세요.",
+    "auth": false
+  },
+  {
+    "route": "/provider",
+    "path": "/provider",
+    "target": "src/app/provider.tsx",
+    "expect": "휴대폰에서 계속해 주세요",
+    "auth": false
+  },
+  {
+    "route": "/+not-found",
+    "path": "/missing-route",
+    "target": "src/app/+not-found.tsx",
+    "expect": "화면을 찾을 수 없습니다",
+    "auth": false
+  }
+]

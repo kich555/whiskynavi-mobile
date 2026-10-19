@@ -23,7 +23,7 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm run test
+      - run: npm run test:coverage
       - run: npm run test:e2e:validate
       - run: npx expo-doctor
       - run: npm run build:web
@@ -34,7 +34,7 @@ jobs:
             .e2e-dist
             .e2e-dist-cache.json
           key: e2e-web-${{ runner.os }}-${{ hashFiles('package-lock.json', 'src/**', 'assets/**', 'app*', 'metro.config.js', 'scripts/web-e2e.mjs', 'scripts/e2e-cache.mjs') }}
-      - run: npm run test:e2e:web
+      - run: npm run test:e2e:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -65,10 +65,18 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Install Maestro
+        env:
+          MAESTRO_VERSION: 2.11.0
         run: |
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
-      - name: Build and test Android release app
+      - uses: actions/cache@v4
+        with:
+          path: artifacts/native-build
+          key: android-e2e-${{ runner.os }}-${{ hashFiles('package-lock.json', 'src/**', 'assets/**', 'app*', 'metro.config.js', 'scripts/native-e2e.mjs', 'scripts/e2e-cache.mjs', 'scripts/web-e2e.mjs') }}
+      - name: Build Android without competing emulator load
+        run: npm run test:e2e:android -- --build-only --arch=x86_64
+      - name: Test Android release app
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -80,5 +88,9 @@ jobs:
         if: always()
         with:
           name: android-fixture-test-results
-          path: artifacts/
+          path: |
+            artifacts/maestro.xml
+            artifacts/maestro-debug/
+            artifacts/maestro/
+            artifacts/native-summary.json
           retention-days: 7

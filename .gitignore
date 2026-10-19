@@ -49,3 +49,5 @@ artifacts/
 .e2e-dist/
 
 .e2e-dist-cache.json
+
+.e2e-run.lock/

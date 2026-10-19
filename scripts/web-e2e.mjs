@@ -4,7 +4,8 @@ import { readFile, stat, writeFile } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { digestTree, sourceDigest } from "./e2e-cache.mjs";
 const stampPath = ".e2e-dist-cache.json";
-const fingerprint = sourceDigest();
+const instrumented = process.env.E2E_CODE_COVERAGE === "1";
+const fingerprint = sourceDigest() + (instrumented ? "-coverage" : "-release");
 let valid = false;
 try {
   const stamp = JSON.parse(await readFile(stampPath, "utf8"));
@@ -16,7 +17,15 @@ try {
 if (!valid) {
   const child = spawn(
     "npx",
-    ["expo", "export", "--platform", "web", "--output-dir", ".e2e-dist"],
+    [
+      "expo",
+      "export",
+      "--platform",
+      "web",
+      "--output-dir",
+      ".e2e-dist",
+      ...(instrumented ? ["--source-maps", "--no-minify"] : []),
+    ],
     {
       stdio: "inherit",
       env: {

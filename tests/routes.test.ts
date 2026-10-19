@@ -35,3 +35,23 @@ it("keeps the generated API byte-for-byte consistent with its provenance", async
       .digest("hex"),
   ).toBe(provenance.sha256);
 });
+
+it("maps every current app route to an explicit browser readiness oracle", async () => {
+  const { readdirSync } = await import("node:fs");
+  const cases = JSON.parse(readFileSync("e2e/route-cases.json", "utf8")) as {
+    target: string;
+    route: string;
+    expect: string;
+  }[];
+  const files = readdirSync("src/app", { recursive: true })
+    .filter(
+      (f) =>
+        typeof f === "string" &&
+        f.endsWith(".tsx") &&
+        !f.split("/").at(-1)!.startsWith("_layout"),
+    )
+    .map((f) => `src/app/${f}`);
+  expect(cases.map((c) => c.target).sort()).toEqual(files.sort());
+  expect(new Set(cases.map((c) => c.route)).size).toBe(cases.length);
+  expect(cases.every((c) => c.expect.length > 0)).toBe(true);
+});
