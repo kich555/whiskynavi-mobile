@@ -23,6 +23,11 @@ onFlowComplete:
 - tapOn:
     id: field-email
 - inputText: rn@example.test
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: field-password
+    direction: DOWN
 - tapOn:
     id: field-password
 - inputText: mobile-e2e-123

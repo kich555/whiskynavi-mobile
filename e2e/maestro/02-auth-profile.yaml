@@ -15,6 +15,9 @@ onFlowComplete:
 - assertVisible: rn@example.test
 - takeScreenshot: artifacts/account
 
+- scrollUntilVisible:
+    element: 내 정보 수정.*
+    direction: DOWN
 - tapOn: 내 정보 수정.*
 - assertVisible: 닉네임
 - takeScreenshot: artifacts/account-profile

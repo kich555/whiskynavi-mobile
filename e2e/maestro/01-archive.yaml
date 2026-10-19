@@ -16,5 +16,9 @@ onFlowComplete:
 - scrollUntilVisible:
     element: 테이스팅 노트
     direction: DOWN
+- assertVisible: 테이스팅 노트
+- scrollUntilVisible:
+    element: 꿀과 바닐라, 긴 여운의 테스트 위스키입니다.
+    direction: DOWN
 - assertVisible: 꿀과 바닐라, 긴 여운의 테스트 위스키입니다.
 - takeScreenshot: artifacts/archive-detail

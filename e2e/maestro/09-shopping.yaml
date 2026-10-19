@@ -11,12 +11,27 @@ onFlowComplete:
     timeout: 20000
 - openLink: whiskynavi-e2e://shop
 - extendedWaitUntil:
-    visible:
-      id: product-card-1
+    visible: 일반상품
     timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: product-card-1
+    direction: DOWN
+- assertVisible:
+    id: product-card-1
+- scrollUntilVisible:
+    element: 이용권
+    direction: UP
 - tapOn: 이용권
+- scrollUntilVisible:
+    element:
+      id: product-card-2
+    direction: DOWN
 - assertVisible:
     id: product-card-2
+- scrollUntilVisible:
+    element: 스마트오더
+    direction: UP
 - tapOn: 스마트오더
 - scrollUntilVisible:
     element:

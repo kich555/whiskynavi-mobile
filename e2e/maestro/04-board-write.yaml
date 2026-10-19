@@ -14,6 +14,11 @@ onFlowComplete:
 - tapOn:
     id: field-title
 - inputText: Mobile E2E Post
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: field-content
+    direction: DOWN
 - tapOn:
     id: field-content
 - inputText: Native editor regression content

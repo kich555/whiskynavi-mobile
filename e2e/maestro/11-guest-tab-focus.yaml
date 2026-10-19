@@ -16,7 +16,13 @@ onFlowComplete:
     timeout: 15000
 - openLink: whiskynavi-e2e://shop
 - extendedWaitUntil:
-    visible:
-      id: product-card-1
+    visible: 일반상품
     timeout: 15000
+- assertNotVisible: 로그인이 필요합니다
+- scrollUntilVisible:
+    element:
+      id: product-card-1
+    direction: DOWN
+- assertVisible:
+    id: product-card-1
 - assertNotVisible: 로그인이 필요합니다
