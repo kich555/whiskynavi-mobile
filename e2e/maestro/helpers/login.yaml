@@ -20,5 +20,5 @@ appId: ${APP_ID}
 - tapOn:
     id: action-sign-in
 - extendedWaitUntil:
-    visible: WHISKYNAVI
+    visible: 메뉴 열기
     timeout: 15000
