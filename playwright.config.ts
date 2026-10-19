@@ -1,10 +1,11 @@
+import { availableParallelism } from "node:os";
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e/web",
   testIgnore: process.env.COMPARE_WEB_ORIGIN ? [] : ["**/design-sync.spec.ts"],
   snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
   fullyParallel: true,
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? Math.min(4, availableParallelism()) : 4,
   retries: 0,
   failOnFlakyTests: true,
   globalTimeout: 600_000,
