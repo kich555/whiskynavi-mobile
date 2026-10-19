@@ -1,5 +1,7 @@
 appId: ${APP_ID}
 name: Archive navigation and full-page detail
+onFlowComplete:
+  - runScript: helpers/cleanup.js
 ---
 - runScript: helpers/reset.js
 - launchApp:

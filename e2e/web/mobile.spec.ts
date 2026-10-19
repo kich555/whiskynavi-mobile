@@ -1473,19 +1473,19 @@ for (const outcome of ["loaded", "failed"]) {
   });
 }
 
-test("account child layouts fit narrow, wide and landscape screens", async ({
-  page,
-  request,
-}) => {
-  test.setTimeout(90000);
-  await request.post("http://127.0.0.1:8787/__test/seed-account");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const viewport of [
-    { width: 320, height: 720 },
-    { width: 390, height: 844 },
-    { width: 430, height: 932 },
-    { width: 844, height: 390 },
-  ]) {
+for (const viewport of [
+  { width: 320, height: 720 },
+  { width: 390, height: 844 },
+  { width: 430, height: 932 },
+  { width: 844, height: 390 },
+]) {
+  test(`account child layouts fit ${viewport.width}x${viewport.height}`, async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(45_000);
+    await request.post("http://127.0.0.1:8787/__test/seed-account");
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize(viewport);
     for (const [name, path, heading] of [
       ["ticket-orders", "/my-page/ticket-orders", "내 이용권 주문"],
@@ -1522,5 +1522,5 @@ test("account child layouts fit narrow, wide and landscape screens", async ({
           path: `artifacts/account-${name}-${viewport.width}.png`,
         });
     }
-  }
-});
+  });
+}

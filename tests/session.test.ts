@@ -71,3 +71,17 @@ describe("secure session lifecycle", () => {
     expect(mock.get).not.toHaveBeenCalled();
   });
 });
+
+it("distinguishes token rotation from account changes for cache subscribers", async () => {
+  const { session } = await import("../src/lib/session");
+  const changed = vi.fn();
+  const unsubscribe = session.subscribe(changed);
+  await session.set({ accessToken: "first", refreshToken: "refresh" });
+  await session.set(
+    { accessToken: "rotated", refreshToken: "next" },
+    "refresh",
+  );
+  await session.set(null);
+  expect(changed.mock.calls).toEqual([["identity"], ["refresh"], ["identity"]]);
+  unsubscribe();
+});

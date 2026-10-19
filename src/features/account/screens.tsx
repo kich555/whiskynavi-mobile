@@ -617,10 +617,10 @@ function ProfileForm({ user }: { user: UserSelfResponse }) {
   };
   const updateTokens = async (data: AuthResponse) => {
     if (data.accessToken && data.refreshToken)
-      await session.set({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-      });
+      await session.set(
+        { accessToken: data.accessToken, refreshToken: data.refreshToken },
+        "refresh",
+      );
   };
   return (
     <View style={{ gap: 20 }}>

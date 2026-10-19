@@ -5,9 +5,11 @@ import {
   readFileSync,
   writeFileSync,
   copyFileSync,
+  rmSync,
 } from "node:fs";
 import { resolve } from "node:path";
 import { digestTree, sourceDigest } from "./e2e-cache.mjs";
+import { nativeReport } from "./native-report.mjs";
 const platform = process.argv[2] ?? "android";
 if (!["android", "ios"].includes(platform))
   throw new Error("Choose android or ios.");
@@ -88,6 +90,8 @@ const server = spawn(process.execPath, ["e2e/fixtures/server.mjs"], {
 let ready = false;
 const startedAt = new Date().toISOString();
 let success = false;
+let flowReport;
+const sourceFingerprint = sourceDigest();
 let interrupted = false;
 const interrupt = () => {
   interrupted = true;
@@ -191,7 +195,8 @@ try {
   const flows = readdirSync("e2e/maestro")
     .filter((name) => name.endsWith(".yaml"))
     .map((name) => `e2e/maestro/${name}`);
-  if (!buildOnly)
+  if (!buildOnly) {
+    rmSync("artifacts/maestro.xml", { force: true });
     await run("maestro", [
       "test",
       "-e",
@@ -206,6 +211,17 @@ try {
       "artifacts/maestro",
       ...flows,
     ]);
+    flowReport = nativeReport(
+      readFileSync("artifacts/maestro.xml", "utf8"),
+      flows.length,
+    );
+    if (!flowReport.complete)
+      throw new Error(
+        "Native report contains missing, failed, or skipped flows.",
+      );
+  }
+  if (sourceFingerprint !== sourceDigest())
+    throw new Error("Application source changed during the native run.");
   success = true;
 } finally {
   mkdirSync("artifacts", { recursive: true });
@@ -218,7 +234,8 @@ try {
         startedAt,
         finishedAt: new Date().toISOString(),
         status: success && !interrupted ? "passed" : "failed",
-        sourceFingerprint: sourceDigest(),
+        sourceFingerprint,
+        flowReport,
       },
       null,
       2,

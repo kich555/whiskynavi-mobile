@@ -1,5 +1,7 @@
 appId: ${APP_ID}
 name: Credentials login and native account screen
+onFlowComplete:
+  - runScript: helpers/cleanup.js
 ---
 - runScript: helpers/reset.js
 - launchApp:

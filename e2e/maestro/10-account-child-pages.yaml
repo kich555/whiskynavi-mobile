@@ -1,5 +1,7 @@
 appId: ${APP_ID}
 name: Account history membership and profile panels
+onFlowComplete:
+  - runScript: helpers/cleanup.js
 ---
 - runScript: helpers/reset.js
 - runScript: helpers/seed-account.js

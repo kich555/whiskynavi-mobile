@@ -8,7 +8,14 @@ test("profile nickname survives reload and logout clears protected access", asyn
     .getByRole("textbox", { name: "닉네임", exact: true })
     .fill("새닉네임");
   await page.getByRole("button", { name: "닉네임 저장", exact: true }).click();
+  await expect(
+    page.getByText("변경사항을 저장했습니다.", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
+    .click();
+  await expect(page.getByText("새닉네임님", { exact: true })).toBeVisible();
   await login(page, "/my-page?tab=profile");
   await expect(
     page.getByRole("textbox", { name: "닉네임", exact: true }),
@@ -158,6 +165,9 @@ test("profile email verification and password change retain explicit validation"
   await page
     .getByRole("button", { name: "이메일 변경 저장", exact: true })
     .click();
+  await expect(
+    page.getByText("변경사항을 저장했습니다.", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "이메일 인증코드 발송", exact: true }),
   ).toBeDisabled();

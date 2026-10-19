@@ -1,5 +1,7 @@
 appId: ${APP_ID}
 name: Protected routes require authentication
+onFlowComplete:
+  - runScript: helpers/cleanup.js
 ---
 - runScript: helpers/reset.js
 - launchApp:

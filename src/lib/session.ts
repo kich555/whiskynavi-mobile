@@ -4,11 +4,12 @@ export type Tokens = { accessToken: string; refreshToken: string };
 let tokens: Tokens | null = null;
 let generation = 0;
 let writes: Promise<void> = Promise.resolve();
-const listeners = new Set<() => void>();
+type SessionChange = "identity" | "refresh";
+const listeners = new Set<(change: SessionChange) => void>();
 export const session = {
   get: () => tokens,
   generation: () => generation,
-  subscribe(listener: () => void) {
+  subscribe(listener: (change: SessionChange) => void) {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
@@ -34,12 +35,12 @@ export const session = {
     } catch {
       await storage.remove("wn.session");
     }
-    listeners.forEach((listener) => listener());
+    listeners.forEach((listener) => listener("identity"));
   },
-  async set(value: Tokens | null) {
+  async set(value: Tokens | null, change: SessionChange = "identity") {
     generation += 1;
     tokens = value;
-    listeners.forEach((listener) => listener());
+    listeners.forEach((listener) => listener(change));
     writes = writes
       .catch(() => {})
       .then(() =>

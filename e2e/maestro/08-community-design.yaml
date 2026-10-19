@@ -1,5 +1,7 @@
 appId: ${APP_ID}
 name: Community density and original/comment separation
+onFlowComplete:
+  - runScript: helpers/cleanup.js
 ---
 - runScript: helpers/reset.js
 - runScript: helpers/seed-feed.js

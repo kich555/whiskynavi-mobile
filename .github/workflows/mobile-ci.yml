@@ -70,12 +70,18 @@ jobs:
         run: |
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: native-apk
         with:
           path: artifacts/native-build
           key: android-e2e-${{ runner.os }}-${{ hashFiles('package-lock.json', 'src/**', 'assets/**', 'app*', 'metro.config.js', 'scripts/native-e2e.mjs', 'scripts/e2e-cache.mjs', 'scripts/web-e2e.mjs') }}
       - name: Build Android without competing emulator load
         run: npm run test:e2e:android -- --build-only --arch=x86_64
+      - uses: actions/cache/save@v4
+        if: steps.native-apk.outputs.cache-hit != 'true'
+        with:
+          path: artifacts/native-build
+          key: ${{ steps.native-apk.outputs.cache-primary-key }}
       - name: Test Android release app
         uses: reactivecircus/android-emulator-runner@v2
         with:

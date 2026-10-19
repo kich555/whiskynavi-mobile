@@ -43,10 +43,10 @@ async function refresh(): Promise<string | null> {
     if (!data?.accessToken || !data?.refreshToken)
       throw new ApiError(502, "로그인 갱신 응답이 올바르지 않습니다.");
     if (generation !== session.generation()) return null;
-    await session.set({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
+    await session.set(
+      { accessToken: data.accessToken, refreshToken: data.refreshToken },
+      "refresh",
+    );
     return data.accessToken as string;
   })().finally(() => {
     refreshFlight = null;

@@ -123,6 +123,7 @@ export function createFixtureServer() {
   let state;
   const reset = () => {
     state = {
+      entitlements: [],
       posts: [structuredClone(post)],
       bottles: [structuredClone(bottle)],
       products: {
@@ -213,6 +214,21 @@ export function createFixtureServer() {
           ],
         },
       ];
+      if (body.fulfillment) {
+        state.orders[0].fulfillmentMethod = "PICKUP";
+        state.orders[0].orderStatus = "RECEIPT_PENDING";
+        state.orders[0].delivery = undefined;
+        state.entitlements = [
+          {
+            id: 1,
+            orderId: 2,
+            itemName: ticket.name,
+            status: "AVAILABLE",
+            validFrom: ticket.ticketValidFrom,
+            validUntil: ticket.ticketValidUntil,
+          },
+        ];
+      }
       state.applications = [
         {
           id: 1,
@@ -698,7 +714,37 @@ export function createFixtureServer() {
       state.orders[0].orderStatus = "CANCEL_REQUESTED";
       return send(state.orders[0]);
     }
-    if (path === "/api/2.0/orders/entitlements/lookup") return send([]);
+    if (
+      /^\/api\/2\.0\/orders\/\d+\/receipt$/.test(path) &&
+      method === "PATCH"
+    ) {
+      const item = state.orders.find(
+        (item) => item.id === Number(path.split("/")[4]),
+      );
+      if (
+        !item ||
+        item.fulfillmentMethod !== "PICKUP" ||
+        item.orderStatus !== "RECEIPT_PENDING"
+      )
+        return send({ message: "수령 완료할 수 없는 주문입니다." }, 409);
+      item.orderStatus = "RECEIPT_COMPLETED";
+      return send(item);
+    }
+    if (path === "/api/2.0/orders/entitlements/lookup")
+      return send(
+        state.entitlements.filter((item) => item.orderId === body.orderId),
+      );
+    if (path === "/api/2.0/orders/entitlements/use" && method === "POST") {
+      const item = state.entitlements.find(
+        (item) =>
+          item.id === body.entitlementId && item.orderId === body.orderId,
+      );
+      if (!item || item.status !== "AVAILABLE")
+        return send({ message: "사용할 수 없는 이용권입니다." }, 409);
+      item.status = "USED";
+      item.usedAt = "2026-10-19T00:00:00Z";
+      return send(item);
+    }
     state.unhandled.push({ method, path });
     return send({ message: `Fixture route missing: ${method} ${path}` }, 404);
   });

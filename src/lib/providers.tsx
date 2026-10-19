@@ -26,7 +26,10 @@ function SessionLifecycle({ children }: { children: ReactNode }) {
       .finally(() => {
         if (active) setReady(true);
       });
-    const unsubscribe = session.subscribe(() => client.clear());
+    const unsubscribe = session.subscribe((change) => {
+      // Rotating credentials must not detach observers from an in-flight query.
+      if (change === "identity") client.clear();
+    });
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") void client.invalidateQueries();
     });

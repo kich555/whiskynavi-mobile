@@ -1,5 +1,7 @@
 appId: ${APP_ID}
 name: Menu, filter and password visibility controls
+onFlowComplete:
+  - runScript: helpers/cleanup.js
 ---
 - runScript: helpers/reset.js
 - launchApp:
