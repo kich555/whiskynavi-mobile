@@ -1,14 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e/web",
+  testIgnore: process.env.COMPARE_WEB_ORIGIN ? [] : ["**/design-sync.spec.ts"],
   snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
-  fullyParallel: false,
-  workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : 4,
+  retries: 0,
+  failOnFlakyTests: true,
+  globalTimeout: 600_000,
   timeout: 30_000,
   forbidOnly: Boolean(process.env.CI),
   outputDir: "artifacts/playwright",
-  reporter: [["list"], ["junit", { outputFile: "artifacts/playwright.xml" }]],
+  reporter: [
+    ["list"],
+    ["junit", { outputFile: "artifacts/playwright.xml" }],
+    ["json", { outputFile: "artifacts/playwright.json" }],
+  ],
   use: {
     baseURL: "http://127.0.0.1:19006",
     serviceWorkers: "block",

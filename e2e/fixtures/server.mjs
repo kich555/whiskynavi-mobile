@@ -147,7 +147,7 @@ export function createFixtureServer() {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Authorization,Content-Type,X-Cart-Token,Idempotency-Key",
+      "Authorization,Content-Type,X-Cart-Token,Idempotency-Key,X-E2E-Test-Id",
     );
     res.setHeader(
       "Access-Control-Allow-Methods",
@@ -658,11 +658,31 @@ export function createFixtureServer() {
     return send({ message: `Fixture route missing: ${method} ${path}` }, 404);
   });
 }
+// Each browser test owns an independent in-memory API; native flows use default.
+export function createFixtureGateway() {
+  const sessions = new Map();
+  return http.createServer((req, res) => {
+    const id = req.headers["x-e2e-test-id"] ?? "native";
+    if (typeof id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) {
+      res.writeHead(400).end("Invalid fixture identity");
+      return;
+    }
+    if (req.url === "/__test/dispose" && req.method === "POST") {
+      sessions.delete(id);
+      res
+        .writeHead(200, { "Content-Type": "application/json" })
+        .end('{"disposed":true}');
+      return;
+    }
+    if (!sessions.has(id)) sessions.set(id, createFixtureServer());
+    sessions.get(id).emit("request", req, res);
+  });
+}
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const server = createFixtureServer();
+  const server = createFixtureGateway();
   server.listen(Number(process.env.FIXTURE_PORT ?? 8787), "127.0.0.1", () =>
     console.log("Isolated mobile fixture server ready."),
   );

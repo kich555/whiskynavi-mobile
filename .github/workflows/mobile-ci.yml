@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -21,21 +21,28 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run typecheck
       - run: npm run test
       - run: npm run test:e2e:validate
       - run: npx expo-doctor
       - run: npm run build:web
       - run: npx playwright install --with-deps chromium
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .e2e-dist
+            .e2e-dist-cache.json
+          key: e2e-web-${{ runner.os }}-${{ hashFiles('package-lock.json', 'src/**', 'assets/**', 'app*', 'metro.config.js', 'scripts/web-e2e.mjs', 'scripts/e2e-cache.mjs') }}
       - run: npm run test:e2e:web
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: web-fixture-test-results
           path: artifacts/
           retention-days: 7
   android-e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +55,10 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - run: npm ci
+      - uses: gradle/actions/setup-gradle@v4
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
