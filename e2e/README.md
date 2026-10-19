@@ -59,7 +59,7 @@ Maestro는 실제 앱의 네이티브 요소를 조작합니다. iOS 키체인�
 
 `07-design-controls.yaml`은 메뉴 선택·필터 닫기·비밀번호 표시 전환을 추가로 검사합니다.
 
-`e2e/maestro`의 10개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
+`e2e/maestro`의 11개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
 
 ## CI
 
@@ -88,7 +88,7 @@ NICE 통신사·인증 앱 복귀, 토스·카드사 앱 전환/승인, 실제 A
 
 웹을 3100 포트에서 실행한 뒤 `npm run web:compare`를 실행하면 RN이 웹과 같은 공개 API 주소로 8082 포트에 열린다. `npm run design:compare`는 두 서버의 모바일 화면과 비교 HTML을 `artifacts/design-sync`에 저장한다. 이 명령은 조회 전용이며 로그인·주문·저장을 실행하지 않는다. RN 웹 미리보기이므로 실제 기기의 텍스트·탭·키보드·제스처 검증을 대신하지 않는다.
 
-`npm run test:e2e:web`에는 아카이브·로그인·소개 스크린샷 비교와 320px·430px 필터 시트 검사가 포함된다. 스크린샷은 `e2e/web/__screenshots__`의 공통 기준을 사용하며 작은 글꼴 렌더링 차이만 허용한다. 기준을 바꾸려면 실제 화면을 검토한 뒤 `npm run test:e2e:web -- --update-snapshots`를 사용한다. CI에서는 갱신하지 않는다. Linux CI의 실제 실행은 아직 확인하지 않았으며 실패 시 diff를 검토해야 한다.
+`npm run test:e2e:web`에는 아카이브·로그인·소개 스크린샷 비교와 320px·430px 필터 시트 검사가 포함된다. 스크린샷은 `e2e/web/__screenshots__`의 공통 기준을 사용하며 작은 글꼴 렌더링 차이만 허용한다. 기준을 바꾸려면 실제 화면을 검토한 뒤 `npm run test:e2e:web -- --update-snapshots`를 사용한다. CI에서는 갱신하지 않는다. Linux CI에서도 이 기준 이미지로 통과를 확인했다. 이후 실패 시에는 diff를 검토하고, 자동 기준 갱신으로 실패를 숨기지 않는다.
 
 ## 2026-10-18 1차 UX 개선 검증
 

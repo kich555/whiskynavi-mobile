@@ -590,7 +590,7 @@ export function createFixtureServer() {
     if (/\/posts\/\d+\/comments$/.test(path)) {
       if (method === "POST") {
         const value = {
-          id: state.comments.length + 1,
+          id: Math.max(0, ...state.comments.map((item) => item.id)) + 1,
           authorId: 7,
           authorNickname: user.username,
           ...body,
@@ -598,7 +598,11 @@ export function createFixtureServer() {
         state.comments.push(value);
         return send(value);
       }
-      return send(state.comments);
+      const replies = (parentId) =>
+        state.comments
+          .filter((item) => (item.parentCommentId ?? undefined) === parentId)
+          .map((item) => ({ ...item, replies: replies(item.id) }));
+      return send(replies(undefined));
     }
     if (/\/posts\/\d+\/views$/.test(path))
       return send(
