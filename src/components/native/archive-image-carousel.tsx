@@ -160,11 +160,29 @@ function ImagePager({
       {looping ? (
         <View
           style={{
+            position: "absolute",
+            bottom: 8,
+            alignSelf: "center",
+            maxWidth: "90%",
+            paddingHorizontal: 8,
             flexDirection: "row",
             flexWrap: "wrap",
             justifyContent: "center",
           }}
+          pointerEvents="box-none"
         >
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 10,
+              bottom: 10,
+              left: 0,
+              right: 0,
+              borderRadius: 20,
+              backgroundColor: "#00000066",
+            }}
+          />
           {images.map((uri, i) => (
             <Pressable
               key={uri}
@@ -182,7 +200,7 @@ function ImagePager({
                 });
               }}
               style={{
-                width: 44,
+                width: 16,
                 height: 44,
                 alignItems: "center",
                 justifyContent: "center",
@@ -193,8 +211,8 @@ function ImagePager({
                   width: i === index ? 7 : 5,
                   height: i === index ? 7 : 5,
                   borderRadius: 4,
-                  backgroundColor: i === index ? colors.text : colors.muted,
-                  opacity: i === index ? 1 : 0.5,
+                  backgroundColor: colors.text,
+                  opacity: i === index ? 1 : 0.45,
                 }}
               />
             </Pressable>
