@@ -1,15 +1,10 @@
+import { HomeBanner } from "@/components/native/home-banner";
 import type { ComponentRef } from "react";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Pause,
-  Play,
-  Search,
-} from "lucide-react-native";
+import { Search } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import { useRef, useState } from "react";
 import { Image } from "expo-image";
 import {
   BottleCard,
@@ -18,9 +13,6 @@ import {
   bottleFrame,
 } from "@/components/native/brand";
 import {
-  AccessibilityInfo,
-  AppState,
-  Platform,
   Linking,
   TextInput,
   View,
@@ -75,92 +67,7 @@ export function HomeScreen() {
     queryKey: ["home", "youtube"],
     queryFn: () => getApiKvStore("youtube_embed_url"),
   });
-  const [slide, setSlide] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [bannerFocused, setBannerFocused] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [active, setActive] = useState(AppState.currentState === "active");
-  const [motionAllowed, setMotionAllowed] = useState(false);
-  const { height, fontScale } = useWindowDimensions();
-  const banners = bannersQuery.data?.data.content ?? [];
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
-  useEffect(() => {
-    const app = AppState.addEventListener("change", (state) =>
-      setActive(state === "active"),
-    );
-    if (Platform.OS === "web") {
-      const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-      const update = () => setMotionAllowed(!media.matches);
-      update();
-      media.addEventListener("change", update);
-      return () => {
-        app.remove();
-        media.removeEventListener("change", update);
-      };
-    }
-    let alive = true;
-    let reduced = true;
-    let reader = true;
-    const update = () => {
-      if (alive) setMotionAllowed(!reduced && !reader);
-    };
-    void Promise.all([
-      AccessibilityInfo.isReduceMotionEnabled(),
-      AccessibilityInfo.isScreenReaderEnabled(),
-    ])
-      .then(([reduceMotion, screenReader]) => {
-        reduced = reduceMotion;
-        reader = screenReader;
-        update();
-      })
-      .catch(() => {});
-    const motion = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      (value) => {
-        reduced = value;
-        update();
-      },
-    );
-    const screenReader = AccessibilityInfo.addEventListener(
-      "screenReaderChanged",
-      (value) => {
-        reader = value;
-        update();
-      },
-    );
-    return () => {
-      alive = false;
-      app.remove();
-      motion.remove();
-      screenReader.remove();
-    };
-  }, []);
-  useEffect(() => {
-    if (
-      banners.length < 2 ||
-      paused ||
-      bannerFocused ||
-      !focused ||
-      !active ||
-      !motionAllowed
-    )
-      return;
-    const timer = setInterval(
-      () => setSlide((n) => (n + 1) % banners.length),
-      5000,
-    );
-    return () => clearInterval(timer);
-  }, [banners.length, paused, bannerFocused, focused, active, motionAllowed]);
-  const move = (delta: number) => {
-    setPaused(true);
-    setSlide((n) => (n + delta + banners.length) % banners.length);
-  };
-  const banner = banners[slide % Math.max(banners.length, 1)];
+  const { fontScale } = useWindowDimensions();
   return (
     <Screen
       refresh={() => {
@@ -175,153 +82,12 @@ export function HomeScreen() {
       }
       contentStyle={{ padding: 0, gap: 0 }}
     >
-      <View
-        style={{
-          minHeight: Math.max(440, Math.min(620, height - 220)),
-          paddingVertical: 96,
-          justifyContent: "center",
-          alignItems: "center",
-          paddingHorizontal: 24,
-        }}
-      >
-        <Image
-          source={
-            banner?.backgroundUrl
-              ? { uri: banner.backgroundUrl }
-              : require("../../../assets/brand/bg-sample.png")
-          }
-          contentFit="cover"
-          style={StyleSheet.absoluteFill}
-        />
-        <View
-          style={[StyleSheet.absoluteFill, { backgroundColor: "#00000080" }]}
-        />
-        {bannersQuery.isPending ? (
-          <Loading variant="hero" />
-        ) : (
-          <View style={{ alignItems: "center", gap: 12 }}>
-            <Text
-              style={{
-                fontFamily: "NaviSansMedium",
-                fontSize: 20,
-                lineHeight: 28,
-                textAlign: "center",
-                color: "white",
-              }}
-            >
-              {banner?.title ?? "위스키를 탐험하는 새로운 방법"}
-            </Text>
-            {banner?.description ? (
-              <Text
-                style={{
-                  ...styles.text,
-                  textAlign: "center",
-                  color: "#ffffffe6",
-                }}
-              >
-                {banner.description}
-              </Text>
-            ) : null}
-            {banner ? (
-              <Action
-                title="자세히 보기"
-                onPress={() => {
-                  if (
-                    banner.link?.startsWith("/") &&
-                    !banner.link.startsWith("//")
-                  )
-                    go(banner.link);
-                  else if (/^https:\/\//.test(banner.link ?? ""))
-                    void Linking.openURL(banner.link!);
-                }}
-              />
-            ) : null}
-          </View>
-        )}
-        {bannersQuery.isError ? (
-          <View style={{ marginTop: 16, gap: 8 }}>
-            <Label>배너를 불러오지 못했어요.</Label>
-            <Action
-              secondary
-              title="배너 다시 불러오기"
-              onPress={() => void bannersQuery.refetch()}
-            />
-          </View>
-        ) : null}
-        {banners.length > 1 ? (
-          <View
-            onFocus={() => setBannerFocused(true)}
-            onBlur={() => setBannerFocused(false)}
-            style={{
-              position: "absolute",
-              bottom: 24,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              backgroundColor: "#11181ee6",
-              borderRadius: 28,
-              paddingHorizontal: 8,
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="이전 배너"
-              onPress={() => move(-1)}
-              style={({ pressed }) => ({
-                width: 48,
-                height: 48,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <ChevronLeft size={20} color="white" />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                paused || !motionAllowed ? "배너 자동 재생" : "배너 일시정지"
-              }
-              accessibilityState={{ disabled: !motionAllowed }}
-              disabled={!motionAllowed}
-              onPress={() => setPaused((value) => !value)}
-              style={{
-                minHeight: 48,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 8,
-              }}
-            >
-              {paused || !motionAllowed ? (
-                <Play size={16} color="white" />
-              ) : (
-                <Pause size={16} color="white" />
-              )}
-              <Text style={styles.text}>
-                {paused || !motionAllowed ? "재생" : "일시정지"}
-              </Text>
-            </Pressable>
-            <Text style={styles.text}>
-              {(slide % banners.length) + 1} / {banners.length}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="다음 배너"
-              onPress={() => move(1)}
-              style={({ pressed }) => ({
-                width: 48,
-                height: 48,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <ChevronRight size={20} color="white" />
-            </Pressable>
-          </View>
-        ) : null}
-      </View>
+      <HomeBanner
+        banners={bannersQuery.data?.data.content ?? []}
+        loading={bannersQuery.isPending}
+        error={bannersQuery.isError}
+        retry={() => void bannersQuery.refetch()}
+      />
       <View style={{ padding: 16, paddingVertical: 24, gap: 16 }}>
         <Heading>NEW ARRIVALS</Heading>
         {bottlesQuery.isPending ? (

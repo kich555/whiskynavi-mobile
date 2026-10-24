@@ -449,39 +449,65 @@ const bannersResponse = {
   ],
 };
 
-test("home banner pauses and supports explicit previous/next navigation", async ({
+test("home banner uses dots and restarts autoplay after manual selection", async ({
   page,
 }) => {
-  await page.route("**/api/banners?*", (route) =>
-    route.fulfill({ json: bannersResponse }),
+  await page.route("**/api/banners?*", (r) =>
+    r.fulfill({ json: bannersResponse }),
   );
-  await page.goto("/");
-  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.clock.install();
-  await page.getByRole("button", { name: "배너 일시정지" }).click();
-  await page.getByRole("button", { name: "다음 배너", exact: true }).click();
-  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
-  await page.clock.fastForward(11000);
-  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "이전 배너", exact: true }).click();
-  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  await page.goto("/");
+  const banner = page.getByTestId("home-banner");
+  const first = banner.getByRole("button", { name: "1번째 배너 보기" });
+  const second = banner.getByRole("button", { name: "2번째 배너 보기" });
+  const settled = async (index: number) => {
+    await expect
+      .poll(() =>
+        page
+          .getByTestId("home-banner-scroll")
+          .evaluate(
+            (el, i) => Math.abs(el.scrollLeft - el.clientWidth * i),
+            index,
+          ),
+      )
+      .toBeLessThan(1);
+    await page.clock.runFor(200);
+  };
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    banner.getByRole("button", { name: /일시정지|재생|이전 배너|다음 배너/ }),
+  ).toHaveCount(0);
+  await page.clock.runFor(4000);
+  await second.click();
+  await settled(1);
+  await expect(second).toHaveAttribute("aria-pressed", "true");
+  await page.clock.runFor(4000);
+  await expect(second).toHaveAttribute("aria-pressed", "true");
+  await page.clock.runFor(1800);
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await settled(0);
+  await first.click();
+  await settled(0);
+  await page.clock.runFor(4000);
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await page.clock.runFor(1800);
+  await expect(second).toHaveAttribute("aria-pressed", "true");
 });
 
-test("reduced motion disables automatic banner changes", async ({ page }) => {
+test("reduced motion keeps dots usable without automatic banner changes", async ({
+  page,
+}) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.route("**/api/banners?*", (route) =>
-    route.fulfill({ json: bannersResponse }),
+  await page.route("**/api/banners?*", (r) =>
+    r.fulfill({ json: bannersResponse }),
   );
-  await page.goto("/");
-  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "배너 자동 재생" }),
-  ).toBeDisabled();
   await page.clock.install();
-  await page.clock.fastForward(11000);
-  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "다음 배너", exact: true }).click();
-  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
+  await page.goto("/");
+  const second = page.getByRole("button", { name: "2번째 배너 보기" });
+  await second.click();
+  await page.clock.runFor(11000);
+  await expect(second).toHaveAttribute("aria-pressed", "true");
 });
 
 test("home keeps arrivals usable when banners fail and retries only the failed section", async ({
@@ -667,25 +693,45 @@ test("filter checkbox selection reaches the API and reset is always available", 
   ).toBeVisible();
 });
 
-test("banner autoplay advances, pauses during keyboard focus and resumes explicitly", async ({
+test("home banner responds to horizontal touch swipes in both directions", async ({
   page,
 }) => {
-  await page.route("**/api/banners?*", (route) =>
-    route.fulfill({ json: bannersResponse }),
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("**/api/banners?*", (r) =>
+    r.fulfill({ json: bannersResponse }),
   );
-  await page.clock.install();
   await page.goto("/");
-  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
-  await page.clock.fastForward(5100);
-  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "다음 배너", exact: true }).focus();
-  await page.clock.fastForward(5100);
-  await expect(page.getByText("두 번째 배너", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "배너 일시정지" }).click();
-  await page.getByRole("button", { name: "배너 자동 재생" }).click();
-  await page.getByRole("link", { name: "WHISKYNAVI", exact: true }).focus();
-  await page.clock.fastForward(5100);
-  await expect(page.getByText("첫 번째 배너", { exact: true })).toBeVisible();
+  const banner = page.getByTestId("home-banner");
+  await expect(
+    banner.getByRole("button", { name: "1번째 배너 보기" }),
+  ).toBeVisible();
+  const cdp = await page.context().newCDPSession(page);
+  const swipe = async (from: number, to: number) => {
+    const box = await banner.boundingBox();
+    const y = box!.y + 80;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: from, y }],
+    });
+    for (let n = 1; n <= 6; n++)
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: from + ((to - from) * n) / 6, y }],
+      });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  };
+  await swipe(330, 60);
+  await expect(
+    banner.getByRole("button", { name: "2번째 배너 보기" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await swipe(60, 330);
+  await expect(
+    banner.getByRole("button", { name: "1번째 배너 보기" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: "artifacts/home-banner-dots.png" });
 });
 
 test("glass checkbox rows retain keyboard consent and checkout validation", async ({
