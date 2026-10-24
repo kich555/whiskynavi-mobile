@@ -9,9 +9,10 @@ test("archive search, empty state and full page detail", async ({ page }) => {
   await expect(
     page.getByText("꿀과 바닐라, 긴 여운의 테스트 위스키입니다."),
   ).toBeVisible();
-  await page
-    .getByRole("link", { name: "목록으로 돌아가기", exact: true })
-    .click();
+  await expect(
+    page.getByRole("link", { name: "목록으로 돌아가기", exact: true }),
+  ).toHaveCount(0);
+  await page.goBack();
   await page.getByRole("textbox", { name: "위스키 검색" }).fill("존재하지않음");
   await page.getByRole("button", { name: "검색", exact: true }).click();
   await expect(page.getByText("표시할 항목이 없습니다.")).toBeVisible();
@@ -1570,3 +1571,60 @@ for (const viewport of [
     });
   }
 }
+
+test("archive image expands without cropping and dismisses from backdrop", async ({
+  page,
+}) => {
+  const portrait =
+    "data:image/svg+xml," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="800"><rect width="400" height="800" fill="#b29b65"/><rect x="8" y="8" width="384" height="784" fill="none" stroke="white" stroke-width="8"/></svg>',
+    );
+  await page.route("**/api/bottles/1", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      json: { ...(await response.json()), imgUrl: portrait, imageUrls: [] },
+    });
+  });
+  await page.goto("/archive/1");
+  const trigger = page.getByRole("button", {
+    name: "네이비 싱글캐스크 12 이미지 확대",
+    exact: true,
+  });
+  await expect(
+    page.getByRole("link", { name: "목록으로 돌아가기", exact: true }),
+  ).toHaveCount(0);
+  await trigger.click();
+  const enlarged = page.getByRole("img", {
+    name: "네이비 싱글캐스크 12 확대 이미지",
+    exact: true,
+  });
+  await expect(enlarged).toBeVisible();
+  await expect(enlarged).toHaveCSS("object-fit", "contain");
+  const bounds = await enlarged.boundingBox();
+  expect(bounds!.height / bounds!.width).toBeCloseTo(2, 1);
+  await page.mouse.click(
+    bounds!.x + bounds!.width / 2,
+    bounds!.y + bounds!.height / 2,
+  );
+  await expect(enlarged).toBeVisible();
+  await page.screenshot({
+    path: "artifacts/archive-image-lightbox.png",
+    scale: "css",
+  });
+  await page
+    .getByRole("button", { name: "확대 이미지 배경 닫기", exact: true })
+    .click({ position: { x: 4, y: 300 } });
+  await expect(enlarged).toHaveCount(0);
+  await expect(page).toHaveURL(/\/archive\/1$/);
+  await trigger.click();
+  await expect(enlarged).toBeVisible();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(enlarged).toHaveCount(0);
+  await trigger.click();
+  await page
+    .getByRole("button", { name: "확대 이미지 닫기", exact: true })
+    .click();
+  await expect(enlarged).toHaveCount(0);
+});

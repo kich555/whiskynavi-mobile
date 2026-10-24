@@ -643,12 +643,14 @@ export function Gallery({
   surface = colors.background,
   imagePadding = 16,
   empty,
+  onImagePress,
 }: {
   images: (string | undefined)[];
   label: string;
   surface?: string;
   imagePadding?: number;
   empty?: ReactNode;
+  onImagePress?: (uri: string) => void;
 }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
@@ -683,7 +685,17 @@ export function Gallery({
               backgroundColor: surface,
             }}
           >
-            <Photo uri={uri} label={label} backgroundColor="transparent" />
+            {onImagePress ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${label} 이미지 확대`}
+                onPress={() => onImagePress(uri)}
+              >
+                <Photo uri={uri} label={label} backgroundColor="transparent" />
+              </Pressable>
+            ) : (
+              <Photo uri={uri} label={label} backgroundColor="transparent" />
+            )}
           </View>
         ))}
       </ScrollView>

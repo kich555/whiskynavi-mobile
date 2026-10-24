@@ -1,3 +1,4 @@
+import { ImageLightbox } from "@/components/native/image-lightbox";
 import { HomeBanner } from "@/components/native/home-banner";
 import type { ComponentRef } from "react";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
@@ -510,6 +511,7 @@ function ArchiveContent({
   );
 }
 export function BottleScreen() {
+  const [expandedImage, setExpandedImage] = useState<string>();
   const { bottleId } = useLocalSearchParams<{ bottleId: string }>();
   const id = Number(bottleId);
   const valid =
@@ -538,6 +540,7 @@ export function BottleScreen() {
           <Gallery
             images={[bottle.imgUrl, ...(bottle.imageUrls ?? [])]}
             label={bottle.name ?? "위스키"}
+            onImagePress={setExpandedImage}
           />
           <Text style={{ ...styles.heading, fontSize: 20 }}>{bottle.name}</Text>
           <View style={{ gap: 12 }}>
@@ -592,7 +595,14 @@ export function BottleScreen() {
           </View>
         </View>
       ) : null}
-      <NavLink href="/archive">목록으로 돌아가기</NavLink>
+      {expandedImage ? (
+        <ImageLightbox
+          key={expandedImage}
+          uri={expandedImage}
+          label={bottle?.name ?? "위스키"}
+          onClose={() => setExpandedImage(undefined)}
+        />
+      ) : null}
     </Screen>
   );
 }
