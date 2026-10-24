@@ -1,3 +1,18 @@
+import {
+  GestureDetector,
+  GestureHandlerRootView,
+  usePanGesture,
+} from "react-native-gesture-handler";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { Check, ImageIcon } from "lucide-react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -1024,6 +1039,8 @@ export function go(path: string) {
   router.push(path as Href);
 }
 
+const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
+
 export function Sheet({
   returnFocusRef,
   footer,
@@ -1039,6 +1056,79 @@ export function Sheet({
   onDismiss: () => void;
   children: ReactNode;
 }) {
+  const offset = useSharedValue(0);
+  const origin = useSharedValue(0);
+  const sheetHeight = useSharedValue(0);
+  const closing = useSharedValue(false);
+  useEffect(() => {
+    if (visible) {
+      offset.set(0);
+      closing.set(false);
+    }
+  }, [visible, offset, closing]);
+  const drag = usePanGesture({
+    enabled: visible,
+    activeOffsetY: 8,
+    failOffsetX: [-20, 20],
+    failOffsetY: -8,
+    onActivate: () => {
+      "worklet";
+      if (closing.get()) return;
+      cancelAnimation(offset);
+      origin.set(offset.get());
+    },
+    onUpdate: (event) => {
+      "worklet";
+      if (!closing.get())
+        offset.set(Math.max(0, origin.get() + event.translationY));
+    },
+    onDeactivate: (event) => {
+      "worklet";
+      if (closing.get()) return;
+      if (
+        !event.canceled &&
+        (offset.get() > 80 ||
+          (event.translationY > 16 && event.velocityY > 900))
+      ) {
+        closing.set(true);
+        offset.set(
+          withTiming(
+            sheetHeight.get() + 24,
+            {
+              duration: 180,
+              easing: Easing.out(Easing.cubic),
+              reduceMotion: ReduceMotion.System,
+            },
+            (finished) => {
+              if (finished) scheduleOnRN(onDismiss);
+            },
+          ),
+        );
+      } else {
+        offset.set(
+          withSpring(0, {
+            damping: 24,
+            stiffness: 260,
+            reduceMotion: ReduceMotion.System,
+          }),
+        );
+      }
+    },
+    onFinalize: (event) => {
+      "worklet";
+      if (event.canceled && !closing.get())
+        offset.set(
+          withSpring(0, {
+            damping: 24,
+            stiffness: 260,
+            reduceMotion: ReduceMotion.System,
+          }),
+        );
+    },
+  });
+  const dragStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: offset.get() }],
+  }));
   const heading = useRef<ComponentRef<typeof Text>>(null);
   const wasVisible = useRef(false);
   useEffect(() => {
@@ -1066,80 +1156,95 @@ export function Sheet({
       animationType="slide"
       onRequestClose={onDismiss}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          backgroundColor: "#00000088",
-        }}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="닫기"
-          onPress={onDismiss}
-          style={{ flex: 1 }}
-        />
-        <SafeAreaView
-          accessibilityViewIsModal
-          onAccessibilityEscape={onDismiss}
-          edges={["bottom"]}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={{
-            backgroundColor: "transparent",
-            borderRadius: 28,
-            borderCurve: "continuous",
-            borderWidth: 1,
-            borderColor: material.edge,
-            overflow: "hidden",
-            marginHorizontal: 8,
-            marginBottom: 8,
-            maxHeight: "88%",
-            boxShadow: "0 18px 48px rgba(0,0,0,0.4)",
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "#00000088",
           }}
         >
-          <GlassBackdrop />
-          <View style={{ padding: 20, gap: 16 }}>
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: "#d7e3eb66",
-                alignSelf: "center",
-              }}
-            />
-            <View style={[styles.row, { justifyContent: "space-between" }]}>
-              <Text
-                ref={heading}
-                accessible
-                accessibilityRole="header"
-                style={[styles.heading, { flex: 1 }]}
-              >
-                {title}
-              </Text>
-              <Action secondary title="완료" onPress={onDismiss} />
-            </View>
-          </View>
-          <ScrollView
-            style={{ flexShrink: 1 }}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ padding: 20, paddingTop: 0, gap: 16 }}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="닫기"
+            onPress={onDismiss}
+            style={{ flex: 1 }}
+          />
+          <AnimatedSafeAreaView
+            testID="dropdown-sheet"
+            onLayout={(event) => {
+              sheetHeight.set(event.nativeEvent.layout.height);
+            }}
+            accessibilityViewIsModal
+            onAccessibilityEscape={onDismiss}
+            edges={["bottom"]}
+            style={[
+              {
+                backgroundColor: "transparent",
+                borderRadius: 28,
+                borderCurve: "continuous",
+                borderWidth: 1,
+                borderColor: material.edge,
+                overflow: "hidden",
+                marginHorizontal: 8,
+                marginBottom: 8,
+                maxHeight: "88%",
+                boxShadow: "0 18px 48px rgba(0,0,0,0.4)",
+              },
+              dragStyle,
+            ]}
           >
-            {children}
-          </ScrollView>
-          {footer ? (
-            <View
-              style={{
-                padding: 20,
-                borderTopWidth: 1,
-                borderColor: colors.line,
-              }}
+            <GlassBackdrop />
+            <GestureDetector gesture={drag}>
+              <View
+                testID="dropdown-drag-header"
+                style={{ padding: 20, gap: 16 }}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: "#d7e3eb66",
+                    alignSelf: "center",
+                  }}
+                />
+                <View style={[styles.row, { justifyContent: "space-between" }]}>
+                  <Text
+                    ref={heading}
+                    accessible
+                    accessibilityRole="header"
+                    style={[styles.heading, { flex: 1 }]}
+                  >
+                    {title}
+                  </Text>
+                  <Action secondary title="완료" onPress={onDismiss} />
+                </View>
+              </View>
+            </GestureDetector>
+            <ScrollView
+              testID="dropdown-scroll-content"
+              style={{ flexShrink: 1 }}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ padding: 20, paddingTop: 0, gap: 16 }}
             >
-              {footer}
-            </View>
-          ) : null}
-        </SafeAreaView>
-      </KeyboardAvoidingView>
+              {children}
+            </ScrollView>
+            {footer ? (
+              <View
+                style={{
+                  padding: 20,
+                  borderTopWidth: 1,
+                  borderColor: colors.line,
+                }}
+              >
+                {footer}
+              </View>
+            ) : null}
+          </AnimatedSafeAreaView>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

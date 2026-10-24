@@ -1628,3 +1628,89 @@ test("archive image expands without cropping and dismisses from backdrop", async
     .click();
   await expect(enlarged).toHaveCount(0);
 });
+
+test("dropdown header drags follow the pointer, rebound and dismiss", async ({
+  page,
+}) => {
+  await page.goto("/archive");
+  const open = page.getByRole("button", { name: "필터", exact: true });
+  const sheet = page.getByTestId("dropdown-sheet");
+  const header = page.getByTestId("dropdown-drag-header");
+  await open.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const initial = (await sheet.boundingBox())!.y;
+  let box = (await header.boundingBox())!;
+  const x = box.x + box.width / 2,
+    y = box.y + 22;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 16, { steps: 8 });
+  await expect
+    .poll(async () => ((await sheet.boundingBox())?.y ?? 0) - initial)
+    .toBeGreaterThan(5);
+  await page.mouse.up();
+  await expect
+    .poll(async () => Math.abs(((await sheet.boundingBox())?.y ?? 0) - initial))
+    .toBeLessThan(1);
+  // A drag begun inside the scrolling body never dismisses the sheet.
+  const body = (await page
+    .getByTestId("dropdown-scroll-content")
+    .boundingBox())!;
+  await page.mouse.move(body.x + body.width / 2, body.y + 70);
+  await page.mouse.down();
+  await page.mouse.move(body.x + body.width / 2, body.y + 180, { steps: 8 });
+  await page.mouse.up();
+  await expect(sheet).toBeVisible();
+  await expect
+    .poll(async () => Math.abs(((await sheet.boundingBox())?.y ?? 0) - initial))
+    .toBeLessThan(1);
+  box = (await header.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 22);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + 150, { steps: 10 });
+  await page.mouse.up();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // The fixed title area is a drag target too, not just the small handle.
+  await open.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  box = (await header.boundingBox())!;
+  await page.mouse.move(box.x + 40, box.y + 76);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 40, box.y + 210, { steps: 10 });
+  await page.mouse.up();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await open.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect
+    .poll(async () => Math.abs(((await sheet.boundingBox())?.y ?? 0) - initial))
+    .toBeLessThan(1);
+  await page.getByRole("button", { name: "완료", exact: true }).click();
+});
+
+test("shared menu dropdown dismisses with a downward touch drag", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "메뉴 열기", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const header = (await page
+    .getByTestId("dropdown-drag-header")
+    .boundingBox())!;
+  const x = header.x + 40,
+    y = header.y + 76;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x, y }],
+  });
+  for (let n = 1; n <= 8; n++)
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x, y: y + n * 16 }],
+    });
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
