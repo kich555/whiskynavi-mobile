@@ -3,7 +3,13 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { GlassBackdrop, material } from "./material";
 import { Link, router, type Href, usePathname } from "expo-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ComponentRef,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   AccessibilityInfo,
   useWindowDimensions,
@@ -20,6 +26,7 @@ import {
   TextInput,
   View,
   type TextInputProps,
+  type KeyDownEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -323,7 +330,7 @@ export function Field({
 }: TextInputProps & {
   label: string;
   error?: string;
-  inputRef?: import("react").Ref<TextInput>;
+  inputRef?: import("react").Ref<ComponentRef<typeof TextInput>>;
   trailing?: ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
@@ -419,22 +426,18 @@ export function ChoiceRow({
   const keyboardProps =
     Platform.OS === "web"
       ? {
-          onKeyDown: (event: {
-            key: string;
-            repeat: boolean;
-            altKey: boolean;
-            ctrlKey: boolean;
-            metaKey: boolean;
-            preventDefault: () => void;
-          }) => {
+          onKeyDown: (
+            event: KeyDownEvent | import("react").KeyboardEvent<HTMLElement>,
+          ) => {
+            const keyEvent = "key" in event ? event : event.nativeEvent;
             if (
-              event.key === " " &&
-              !event.altKey &&
-              !event.ctrlKey &&
-              !event.metaKey
+              keyEvent.key === " " &&
+              !keyEvent.altKey &&
+              !keyEvent.ctrlKey &&
+              !keyEvent.metaKey
             ) {
               event.preventDefault();
-              if (!event.repeat) onChange(!checked);
+              if (!keyEvent.repeat) onChange(!checked);
             }
           },
         }
@@ -649,7 +652,7 @@ export function Gallery({
 }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const unique = [
     ...new Set(images.filter((uri): uri is string => Boolean(uri))),
   ];
@@ -723,7 +726,7 @@ export function Screen({
   contentStyle,
   scrollRef,
 }: {
-  scrollRef?: import("react").Ref<ScrollView>;
+  scrollRef?: import("react").Ref<ComponentRef<typeof ScrollView>>;
   title?: string;
   children: ReactNode;
   contentStyle?: import("react-native").StyleProp<
@@ -953,7 +956,7 @@ export function InfiniteList<T extends { id?: number }>({
             <Action title="다시 불러오기" onPress={refresh} />
           ) : emptyText ? (
             <Label muted>{emptyText}</Label>
-          ) : null
+          ) : undefined
         }
         ListFooterComponent={
           <View style={{ gap: 16, paddingTop: 16 }}>
@@ -1017,14 +1020,14 @@ export function Sheet({
   onDismiss,
   children,
 }: {
-  returnFocusRef?: import("react").RefObject<View | null>;
+  returnFocusRef?: import("react").RefObject<ComponentRef<typeof View> | null>;
   footer?: ReactNode;
   visible: boolean;
   title: string;
   onDismiss: () => void;
   children: ReactNode;
 }) {
-  const heading = useRef<Text>(null);
+  const heading = useRef<ComponentRef<typeof Text>>(null);
   const wasVisible = useRef(false);
   useEffect(() => {
     if (!visible && wasVisible.current && Platform.OS !== "web") {

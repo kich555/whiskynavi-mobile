@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import { Image } from "expo-image";
 import { randomUUID } from "expo-crypto";
 import { router, useLocalSearchParams } from "expo-router";
@@ -42,8 +43,8 @@ export function SignInScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
-  const emailInput = useRef<TextInput>(null);
-  const passwordInput = useRef<TextInput>(null);
+  const emailInput = useRef<ComponentRef<typeof TextInput>>(null);
+  const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
   const emailError =
     emailTouched && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
       ? "올바른 이메일 주소를 입력해주세요."

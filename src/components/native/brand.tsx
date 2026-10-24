@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import Svg, {
   Defs,
   LinearGradient as SvgGradient,
@@ -24,7 +25,7 @@ export const bottleFrame = { borderWidth: 1, borderColor: colors.line };
 export function BrandHeader() {
   const [pressedControl, setPressedControl] = useState<string>();
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<View>(null);
+  const menuRef = useRef<ComponentRef<typeof View>>(null);
   return (
     <>
       <View

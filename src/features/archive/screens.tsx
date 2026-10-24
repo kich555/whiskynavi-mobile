@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
 import {
   ChevronLeft,
@@ -461,8 +462,8 @@ function ArchiveContent({
     series: params.series ? [params.series] : undefined,
   });
   const [expanded, setExpanded] = useState(false);
-  const filterRef = useRef<View>(null);
-  const sortRef = useRef<View>(null);
+  const filterRef = useRef<ComponentRef<typeof View>>(null);
+  const sortRef = useRef<ComponentRef<typeof View>>(null);
   const { fontScale } = useWindowDimensions();
   const resetFilters = () => {
     setFilters({});
@@ -872,7 +873,7 @@ export function BrandScreen() {
     queryKey: ["brands"],
     queryFn: () => getApiBottlesBrandSeries(),
   });
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ComponentRef<typeof ScrollView>>(null);
   const positions = useRef<Record<string, number>>({});
   return (
     <Screen

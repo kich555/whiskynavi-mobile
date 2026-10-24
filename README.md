@@ -1,6 +1,6 @@
 # WhiskyNavi Mobile
 
-기존 WhiskyNavi 사용자 웹 화면을 React Native로 옮긴 Expo 앱입니다. Expo SDK 57, React 19, TypeScript, Expo Router를 사용합니다.
+기존 WhiskyNavi 사용자 웹 화면을 React Native로 옮긴 Expo 앱입니다. Expo SDK 58, React 19, TypeScript, Expo Router를 사용합니다.
 
 ## 바로 실행
 
@@ -9,6 +9,8 @@ cd ~/Documents/dev/navi/whiskynavi-mobile
 npm ci
 npm start
 ```
+
+Expo Go 최신 버전(SDK 58)과 프로젝트의 SDK 버전이 일치해야 합니다. SDK를 변경한 뒤에는 기존 Metro를 종료하고 `npm start -- --clear`로 다시 시작하세요. iPhone 실기기는 구버전 Expo Go를 설치할 수 없으므로 버전 불일치 시 프로젝트 의존성을 업데이트해야 합니다.
 
 휴대폰에 Expo Go를 설치하고 컴퓨터와 같은 Wi-Fi에서 QR 코드를 스캔하세요. iPhone은 카메라, Android는 Expo Go에서 스캔합니다. 브라우저 미리보기는 `npm run web`입니다.
 
@@ -98,7 +100,7 @@ GitHub Actions workflow는 저장되어 있으며 원격 GitHub에서 실행한 
 
 ## 공식 문서
 
-- [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/)
+- [Expo SDK 58](https://docs.expo.dev/versions/v58.0.0/)
 - [React Native 기본 요소](https://reactnative.dev/docs/intro-react-native-components)
 - [Expo Router](https://docs.expo.dev/router/introduction/)
 - [Maestro 설치](https://docs.maestro.dev/maestro-cli/how-to-install-maestro-cli)
