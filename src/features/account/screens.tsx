@@ -219,23 +219,26 @@ function MyPage({ selected }: { selected: AccountSectionName | "overview" }) {
           <NavLink href="/my-page/inquiries">1:1 문의</NavLink>
         </>
       ) : null}
-      {selected !== "overview" ? (
-        <NavLink href="/my-page/ticket-orders">내 이용권 주문</NavLink>
+      {selected === "overview" ? (
+        <Action
+          secondary
+          size="compact"
+          leading={<LogOut size={17} color={colors.text} />}
+          title="로그아웃"
+          onPress={() =>
+            confirmAction(
+              "로그아웃",
+              "이 기기에서 로그아웃하시겠습니까?",
+              () => {
+                void storage
+                  .remove("wn.cart")
+                  .then(() => session.set(null))
+                  .then(() => router.replace("/"));
+              },
+            )
+          }
+        />
       ) : null}
-      <Action
-        secondary
-        size="compact"
-        leading={<LogOut size={17} color={colors.text} />}
-        title="로그아웃"
-        onPress={() =>
-          confirmAction("로그아웃", "이 기기에서 로그아웃하시겠습니까?", () => {
-            void storage
-              .remove("wn.cart")
-              .then(() => session.set(null))
-              .then(() => router.replace("/"));
-          })
-        }
-      />
     </Screen>
   );
 }
