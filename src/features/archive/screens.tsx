@@ -1,3 +1,4 @@
+import { ArchiveImageCarousel } from "@/components/native/archive-image-carousel";
 import { ImageLightbox } from "@/components/native/image-lightbox";
 import { HomeBanner } from "@/components/native/home-banner";
 import type { ComponentRef } from "react";
@@ -39,7 +40,6 @@ import {
   FilterChip,
   Action,
   Field,
-  Gallery,
   Heading,
   Label,
   Loading,
@@ -537,7 +537,7 @@ export function BottleScreen() {
             gap: 24,
           }}
         >
-          <Gallery
+          <ArchiveImageCarousel
             images={[bottle.imgUrl, ...(bottle.imageUrls ?? [])]}
             label={bottle.name ?? "위스키"}
             onImagePress={setExpandedImage}

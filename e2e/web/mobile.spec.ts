@@ -544,32 +544,137 @@ test("home keeps arrivals usable when banners fail and retries only the failed s
   await expect(page.getByText("테이스팅 노트", { exact: true })).toBeVisible();
 });
 
-test("gallery provides button alternatives and accurate boundary states", async ({
+test("archive images swipe infinitely in both directions and retain enlargement", async ({
   page,
 }) => {
+  const images = ["#b29b65", "#647b8c", "#9f6759"].map(
+    (color) =>
+      "data:image/svg+xml," +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="${color}"/></svg>`,
+      ),
+  );
   await page.route("**/api/bottles/1", async (route) => {
     const response = await route.fetch();
     await route.fulfill({
       json: {
         ...(await response.json()),
-        imgUrl: previewImage,
-        imageUrls: [previewImage + "%20"],
+        imgUrl: images[0],
+        imageUrls: images.slice(1),
       },
     });
   });
   await page.goto("/archive/1");
-  const previous = page.getByRole("button", {
-    name: "이전 이미지",
+  const pager = page.getByTestId("archive-image-carousel");
+  const scroll = page.getByTestId("archive-image-scroll");
+  const selected = (i: number) =>
+    pager.getByRole("button", { name: `${i}번째 이미지 보기`, exact: true });
+  await expect(selected(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("button", { name: /^(이전|다음) 이미지$/ }),
+  ).toHaveCount(0);
+  const cdp = await page.context().newCDPSession(page);
+  const swipe = async (direction: "next" | "previous") => {
+    const box = (await scroll.boundingBox())!;
+    const from = box.x + box.width * (direction === "next" ? 0.85 : 0.15);
+    const to = box.x + box.width * (direction === "next" ? 0.15 : 0.85);
+    const y = box.y + box.height / 2;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: from, y }],
+    });
+    for (let n = 1; n <= 10; n++) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: from + ((to - from) * n) / 10, y }],
+      });
+      await page.waitForTimeout(25);
+    }
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  };
+  for (const i of [2, 3, 1, 2]) {
+    await swipe("next");
+    await expect(selected(i)).toHaveAttribute("aria-pressed", "true");
+  }
+  for (const i of [1, 3, 2, 1]) {
+    await swipe("previous");
+    await expect(selected(i)).toHaveAttribute("aria-pressed", "true");
+  }
+  await selected(3).click();
+  await page.setViewportSize({ width: 430, height: 932 });
+  await expect(selected(3)).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() =>
+      scroll.evaluate((el) => Math.abs(el.scrollLeft - el.clientWidth * 3)),
+    )
+    .toBeLessThan(1);
+  await swipe("next");
+  await expect(selected(1)).toHaveAttribute("aria-pressed", "true");
+  await selected(2).click();
+  await pager
+    .getByRole("button", {
+      name: "네이비 싱글캐스크 12 이미지 확대",
+      exact: true,
+    })
+    .click();
+  const expanded = page.getByRole("img", {
+    name: "네이비 싱글캐스크 12 확대 이미지",
     exact: true,
   });
-  const next = page.getByRole("button", { name: "다음 이미지", exact: true });
-  await expect(previous).toBeDisabled();
-  await next.click();
-  await expect(page.getByText("2 / 2", { exact: true })).toBeVisible();
-  await expect(next).toBeDisabled();
-  await previous.click();
-  await expect(page.getByText("1 / 2", { exact: true })).toBeVisible();
+  await expect(expanded).toBeVisible();
+  await expect
+    .poll(() =>
+      expanded.evaluate(async (el) =>
+        (await fetch((el as HTMLImageElement).src)).text(),
+      ),
+    )
+    .toContain("#647b8c");
+  await expect(
+    page.getByRole("button", { name: "확대 이미지 닫기", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(expanded).toHaveCount(0);
+  await expect(selected(2)).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({
+    path: "artifacts/archive-image-carousel.png",
+    scale: "css",
+  });
 });
+
+for (const count of [0, 1, 2]) {
+  test(`archive carousel handles ${count} images`, async ({ page }) => {
+    await page.route("**/api/bottles/1", async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        json: {
+          ...(await response.json()),
+          imgUrl: count ? previewImage : undefined,
+          imageUrls: count === 2 ? [previewImage + "%20"] : [],
+        },
+      });
+    });
+    await page.goto("/archive/1");
+    const pager = page.getByTestId("archive-image-carousel");
+    await expect(pager).toBeVisible();
+    await expect(
+      pager.getByRole("button", { name: /번째 이미지 보기$/ }),
+    ).toHaveCount(count > 1 ? count : 0);
+    await expect(
+      pager.getByRole("button", { name: /이미지 확대$/ }),
+    ).toHaveCount(count ? 1 : 0);
+    if (count === 2) {
+      await pager
+        .getByRole("button", { name: "2번째 이미지 보기", exact: true })
+        .click();
+      await expect(
+        pager.getByRole("button", { name: "2번째 이미지 보기", exact: true }),
+      ).toHaveAttribute("aria-pressed", "true");
+    }
+  });
+}
 
 test("font download failure still allows navigation with fallback text", async ({
   page,
