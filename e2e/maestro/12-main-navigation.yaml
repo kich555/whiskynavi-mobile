@@ -1,0 +1,37 @@
+appId: ${APP_ID}
+name: Five main destinations and brand reservation notice defaults
+onFlowComplete:
+  - runScript: helpers/cleanup.js
+---
+- runScript: helpers/reset.js
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: WHISKYNAVI
+    timeout: 20000
+- runFlow: helpers/login.yaml
+- tapOn: 아카이브
+- extendedWaitUntil:
+    visible: 각 브랜드별 시리즈를 만나보세요
+    timeout: 15000
+- assertVisible: 스토어
+- tapOn: 스토어
+- extendedWaitUntil:
+    visible: 예약하기
+    timeout: 15000
+- assertNotVisible: 로그인이 필요합니다
+- tapOn: 커뮤니티
+- extendedWaitUntil:
+    visible: 서비스 이용 안내
+    timeout: 15000
+- takeScreenshot: artifacts/navigation-notices
+- tapOn: 마이
+- extendedWaitUntil:
+    visible: 모바일테스터님
+    timeout: 15000
+- openLink: whiskynavi-e2e://board/news
+- extendedWaitUntil:
+    visible: 위스키 소식
+    timeout: 15000
+- assertVisible: 스토어
+- assertVisible: 마이

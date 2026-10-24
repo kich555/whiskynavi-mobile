@@ -135,6 +135,17 @@ export function createFixtureServer() {
       notices: [structuredClone(notice)],
       ended: [],
       announcements: [],
+      globalNotices: [
+        {
+          id: 81,
+          title: "서비스 이용 안내",
+          content: "<p>위스키내비 서비스 운영 공지입니다.</p>",
+          scope: "GLOBAL",
+          pinned: true,
+          createdAt: "2026-10-01T00:00:00Z",
+          publishedAt: "2026-10-01T00:00:00Z",
+        },
+      ],
       comments: [],
       inquiries: [],
       applications: [],
@@ -522,6 +533,14 @@ export function createFixtureServer() {
       }
       Object.assign(state.applications[0] ?? {}, body);
       return send(state.applications[0]);
+    }
+    if (path === "/api/boards/announcements/global")
+      return send(page(state.globalNotices));
+    if (/^\/api\/boards\/announcements\/\d+$/.test(path)) {
+      const item = state.globalNotices.find(
+        (item) => item.id === Number(path.split("/").pop()),
+      );
+      return item ? send(item) : send({ message: "공지가 없습니다." }, 404);
     }
     if (/^\/api\/boards\/[^/]+$/.test(path))
       return send({

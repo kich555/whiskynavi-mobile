@@ -1,24 +1,70 @@
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { usePathname } from "expo-router";
-import { Text } from "react-native";
+import { Text, Pressable, View } from "react-native";
+import type { ComponentProps } from "react";
 import {
   House,
   Grid2X2,
-  CalendarDays,
   ShoppingBag,
+  MessagesSquare,
   UserRound,
+  type LucideIcon,
 } from "lucide-react-native";
 import { colors } from "@/components/native/ui";
 import { BrandHeader } from "@/components/native/brand";
+function BottomTab({
+  label,
+  icon: Icon,
+  isFocused,
+  ...props
+}: ComponentProps<typeof Pressable> & {
+  label: string;
+  icon: LucideIcon;
+  isFocused?: boolean;
+}) {
+  return (
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isFocused }}
+      aria-selected={isFocused}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5,
+        minHeight: 64,
+      }}
+    >
+      <Icon
+        size={22}
+        color={isFocused ? colors.text : colors.muted}
+        strokeWidth={isFocused ? 2.4 : 1.5}
+      />
+      <Text
+        style={{
+          color: isFocused ? colors.text : colors.muted,
+          fontSize: 12,
+          fontFamily: isFocused ? "NaviSansBold" : "NaviSans",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 export default function Layout() {
-  const path = usePathname();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <BrandHeader />
       <Tabs style={{ flex: 1 }}>
-        <TabSlot style={{ flex: 1, minHeight: 0 }} />
+        <View style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <TabSlot detachInactiveScreens style={{ flex: 1, minHeight: 0 }} />
+        </View>
         <TabList
+          accessibilityRole="tablist"
+          accessibilityLabel="하단 메뉴"
           style={{
             backgroundColor: colors.background,
             borderTopWidth: 1,
@@ -29,47 +75,40 @@ export default function Layout() {
           }}
         >
           {[
-            { name: "home", href: "/", label: "홈", icon: House },
+            { name: "main-home", href: "/", label: "홈", icon: House },
             {
-              name: "archive",
-              href: "/archive",
+              name: "main-archive",
+              href: "/brand",
               label: "아카이브",
               icon: Grid2X2,
             },
             {
-              name: "reservation",
+              name: "main-store",
               href: "/reservation",
-              label: "예약",
-              icon: CalendarDays,
+              label: "스토어",
+              icon: ShoppingBag,
             },
-            { name: "shop", href: "/shop", label: "쇼핑", icon: ShoppingBag },
-            { name: "my", href: "/my-page", label: "마이", icon: UserRound },
-          ].map(({ name, href, label, icon: Icon }) => (
+            {
+              name: "main-community",
+              href: "/notices",
+              label: "커뮤니티",
+              icon: MessagesSquare,
+            },
+            {
+              name: "main-my",
+              href: "/my-page",
+              label: "마이",
+              icon: UserRound,
+            },
+          ].map(({ name, href, label, icon }) => (
             <TabTrigger
               key={name}
               name={name}
               href={href as never}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 5,
-              }}
+              resetOnFocus={false}
+              asChild
             >
-              <Icon
-                size={22}
-                color={path === href ? colors.text : colors.muted}
-                strokeWidth={path === href ? 2.4 : 1.5}
-              />
-              <Text
-                style={{
-                  color: path === href ? colors.text : colors.muted,
-                  fontSize: 12,
-                  fontFamily: path === href ? "NaviSansBold" : "NaviSans",
-                }}
-              >
-                {label}
-              </Text>
+              <BottomTab label={label} icon={icon} />
             </TabTrigger>
           ))}
         </TabList>

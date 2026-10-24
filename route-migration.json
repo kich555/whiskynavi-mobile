@@ -6,7 +6,7 @@
   },
   {
     "route": "/archive",
-    "target": "src/app/(main)/(tabs)/archive.tsx",
+    "target": "src/app/(main)/(tabs)/(archive)/archive.tsx",
     "screen": "ArchiveScreen"
   },
   {
@@ -16,7 +16,7 @@
   },
   {
     "route": "/brand",
-    "target": "src/app/(main)/brand.tsx",
+    "target": "src/app/(main)/(tabs)/(archive)/brand.tsx",
     "screen": "BrandScreen"
   },
   {
@@ -31,7 +31,7 @@
   },
   {
     "route": "/shop",
-    "target": "src/app/(main)/(tabs)/shop.tsx",
+    "target": "src/app/(main)/(tabs)/(store)/shop.tsx",
     "screen": "ShopScreen"
   },
   {
@@ -51,7 +51,7 @@
   },
   {
     "route": "/reservation",
-    "target": "src/app/(main)/(tabs)/reservation.tsx",
+    "target": "src/app/(main)/(tabs)/(store)/reservation.tsx",
     "screen": "ReservationsScreen"
   },
   {
@@ -137,7 +137,8 @@
   {
     "route": "/general-items",
     "target": "src/app/(main)/general-items.tsx",
-    "screen": "CatalogScreen"
+    "screen": "ShopScreen",
+    "redirectTo": "/shop?channel=general"
   },
   {
     "route": "/general-items/[saleId]",
@@ -147,7 +148,8 @@
   {
     "route": "/ticket-products",
     "target": "src/app/(main)/ticket-products.tsx",
-    "screen": "CatalogScreen"
+    "screen": "ShopScreen",
+    "redirectTo": "/shop?channel=ticket"
   },
   {
     "route": "/ticket-products/[saleId]",
@@ -157,7 +159,8 @@
   {
     "route": "/smart-order",
     "target": "src/app/(main)/smart-order.tsx",
-    "screen": "CatalogScreen"
+    "screen": "ShopScreen",
+    "redirectTo": "/shop?channel=smart"
   },
   {
     "route": "/smart-order/[productId]",
@@ -166,7 +169,7 @@
   },
   {
     "route": "/board/community",
-    "target": "src/app/(main)/board/community.tsx",
+    "target": "src/app/(main)/(tabs)/(community)/board/community.tsx",
     "screen": "BoardScreen"
   },
   {
@@ -191,7 +194,7 @@
   },
   {
     "route": "/board/news",
-    "target": "src/app/(main)/board/news.tsx",
+    "target": "src/app/(main)/(tabs)/(community)/board/news.tsx",
     "screen": "BoardScreen"
   },
   {

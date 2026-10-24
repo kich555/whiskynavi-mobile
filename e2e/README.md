@@ -59,7 +59,7 @@ Maestro는 실제 앱의 네이티브 요소를 조작합니다. iOS 키체인�
 
 `07-design-controls.yaml`은 메뉴 선택·필터 닫기·비밀번호 표시 전환을 추가로 검사합니다.
 
-`e2e/maestro`의 11개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
+`e2e/maestro`의 12개 top-level flow가 네이티브 smoke입니다. 보조 flow는 helpers/에 있으며 독립 실행하지 않습니다. `test:e2e:validate`는 YAML 구문·문서 형태 검사일 뿐 Maestro 실행을 의미하지 않습니다.
 
 ## CI
 

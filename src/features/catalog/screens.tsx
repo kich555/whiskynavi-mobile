@@ -90,7 +90,13 @@ export function canOrder(
   );
 }
 export function ShopScreen() {
-  const [channel, setChannel] = useState<Channel>("general");
+  const { channel: requestedChannel } = useLocalSearchParams<{
+    channel?: string;
+  }>();
+  const channel: Channel =
+    requestedChannel === "ticket" || requestedChannel === "smart"
+      ? requestedChannel
+      : "general";
   return (
     <CatalogScreen
       channel={channel}
@@ -105,7 +111,7 @@ export function ShopScreen() {
               key={key}
               label={titles[key]}
               selected={channel === key}
-              onPress={() => setChannel(key)}
+              onPress={() => router.setParams({ channel: key })}
             />
           ))}
         </ScrollView>

@@ -9,7 +9,7 @@
   {
     "route": "/archive",
     "path": "/archive",
-    "target": "src/app/(main)/(tabs)/archive.tsx",
+    "target": "src/app/(main)/(tabs)/(archive)/archive.tsx",
     "expect": "아카이브",
     "auth": false
   },
@@ -23,7 +23,7 @@
   {
     "route": "/brand",
     "path": "/brand",
-    "target": "src/app/(main)/brand.tsx",
+    "target": "src/app/(main)/(tabs)/(archive)/brand.tsx",
     "expect": "Single Cask",
     "auth": false
   },
@@ -44,7 +44,7 @@
   {
     "route": "/shop",
     "path": "/shop",
-    "target": "src/app/(main)/(tabs)/shop.tsx",
+    "target": "src/app/(main)/(tabs)/(store)/shop.tsx",
     "expect": "위스키 테이스팅 글라스",
     "auth": false
   },
@@ -72,7 +72,7 @@
   {
     "route": "/reservation",
     "path": "/reservation",
-    "target": "src/app/(main)/(tabs)/reservation.tsx",
+    "target": "src/app/(main)/(tabs)/(store)/reservation.tsx",
     "expect": "싱글캐스크 예약",
     "auth": true
   },
@@ -233,7 +233,7 @@
   {
     "route": "/board/community",
     "path": "/board/community",
-    "target": "src/app/(main)/board/community.tsx",
+    "target": "src/app/(main)/(tabs)/(community)/board/community.tsx",
     "expect": "첫 번째 위스키 이야기",
     "auth": false
   },
@@ -268,7 +268,7 @@
   {
     "route": "/board/news",
     "path": "/board/news",
-    "target": "src/app/(main)/board/news.tsx",
+    "target": "src/app/(main)/(tabs)/(community)/board/news.tsx",
     "expect": "첫 번째 위스키 이야기",
     "auth": false
   },
@@ -432,5 +432,19 @@
     "target": "src/app/(main)/my-page/faq.tsx",
     "expect": "고객 지원",
     "auth": true
+  },
+  {
+    "route": "/notices",
+    "path": "/notices",
+    "target": "src/app/(main)/(tabs)/(community)/notices.tsx",
+    "expect": "서비스 이용 안내",
+    "auth": false
+  },
+  {
+    "route": "/notices/[announcementId]",
+    "path": "/notices/81",
+    "target": "src/app/(main)/notices/[announcementId].tsx",
+    "expect": "위스키내비 서비스 운영 공지입니다.",
+    "auth": false
   }
 ]

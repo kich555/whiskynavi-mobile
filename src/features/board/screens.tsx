@@ -1,4 +1,3 @@
-import { BoardTabs, type BoardTab } from "./board-tabs";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, router, useLocalSearchParams, type Href } from "expo-router";
@@ -6,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MessageSquare, Eye, Search, Pin } from "lucide-react-native";
 import {
+  getApiBoardsAnnouncementsAnnouncementid,
   getApiBoardsBoardid,
   postApiBoardsBoardidPostsPostidViews,
   postApiAdminBoardsBoardidPostsPostidDelete,
@@ -50,8 +50,18 @@ import { Editor } from "@/components/native/editor";
 import { useSession } from "@/lib/providers";
 import { plainText } from "@/lib/content";
 
-export function BoardScreen({ board: initialBoard }: { board: BoardTab }) {
-  const [board, setBoard] = useState<BoardTab>(initialBoard);
+type BoardTab = "community" | "news";
+
+function announcementPath(
+  item: { id?: number; scope?: string },
+  board: string,
+) {
+  return item.scope === "GLOBAL"
+    ? `/notices/${item.id}`
+    : `/board/${board}/announcements/${item.id}`;
+}
+
+export function BoardScreen({ board }: { board: BoardTab }) {
   const [keyword, setKeyword] = useState("");
   const [search, setSearch] = useState("");
   const [postTypeCode, setPostTypeCode] = useState<string>();
@@ -97,17 +107,6 @@ export function BoardScreen({ board: initialBoard }: { board: BoardTab }) {
       header={
         <View style={{ gap: 12 }}>
           <View style={[styles.row, { justifyContent: "space-between" }]}>
-            <BoardTabs
-              value={board}
-              onChange={(next) => {
-                if (next === board) return;
-                setBoard(next);
-                setResource("posts");
-                setPostTypeCode(undefined);
-                setKeyword("");
-                setSearch("");
-              }}
-            />
             <NavLink href={`/board/${board}/posts/new`}>글쓰기</NavLink>
           </View>
           <Field
@@ -170,7 +169,7 @@ export function BoardScreen({ board: initialBoard }: { board: BoardTab }) {
                 .map((item) => (
                   <Link
                     key={item.id}
-                    href={`/board/${board}/announcements/${item.id}` as Href}
+                    href={announcementPath(item, board) as Href}
                     asChild
                   >
                     <Pressable
@@ -189,7 +188,11 @@ export function BoardScreen({ board: initialBoard }: { board: BoardTab }) {
       }
       renderItem={(item) => (
         <SurfaceLink
-          href={`/board/${board}/${resource}/${item.id}`}
+          href={
+            resource === "announcements"
+              ? announcementPath(item, board)
+              : `/board/${board}/posts/${item.id}`
+          }
           testID={`board-row-${item.id}`}
           style={boardStyles.listRow}
         >
@@ -510,7 +513,10 @@ export function PostScreen({
     queryKey: [announcement ? "announcement" : "post", board, id],
     queryFn: async () =>
       announcement
-        ? (await getApiBoardsBoardidAnnouncementsAnnouncementid(board, id)).data
+        ? board === "global"
+          ? (await getApiBoardsAnnouncementsAnnouncementid(id)).data
+          : (await getApiBoardsBoardidAnnouncementsAnnouncementid(board, id))
+              .data
         : (await getApiBoardsBoardidPostsPostid(board, id)).data,
     enabled: valid,
   });
@@ -549,7 +555,12 @@ export function PostScreen({
       emptyText={post && !announcement ? "첫 댓글을 남겨보세요." : ""}
       header={
         <View style={{ gap: 16 }}>
-          <NavLink href={`/board/${board}`}>목록으로</NavLink>
+          <NavLink
+            href={board === "global" ? "/notices" : `/board/${board}`}
+            dismissTo
+          >
+            목록으로
+          </NavLink>
           {query.isLoading ? <Loading variant="article" /> : null}
           {post ? (
             <View testID="post-original" style={boardStyles.original}>

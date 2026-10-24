@@ -1011,7 +1011,7 @@ test("post body and comments have distinct visual sections", async ({
   await expect(page.getByTestId("comments-section")).toHaveCount(0);
 });
 
-test("community and news switch inside one screen with a moving tab indicator", async ({
+test("community and news switch within the community destination", async ({
   page,
   request,
 }) => {
@@ -1020,56 +1020,54 @@ test("community and news switch inside one screen with a moving tab indicator", 
   });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/board/community");
-  const community = page.getByRole("tab", { name: "커뮤니티", exact: true });
-  const news = page.getByRole("tab", { name: "소식", exact: true });
+  const menu = page.getByRole("tablist", {
+    name: "커뮤니티 메뉴",
+    exact: true,
+  });
+  const community = menu.getByRole("tab", { name: "커뮤니티", exact: true });
+  const news = menu.getByRole("tab", { name: "소식", exact: true });
   await expect(community).toHaveAttribute("aria-selected", "true");
   await page.evaluate(() => document.fonts.ready);
-  const indicator = page.getByTestId("board-tab-indicator");
+  const indicator = menu.getByTestId("section-tab-indicator");
   const initial = (await indicator.boundingBox())!.x;
-  const url = page.url();
   await news.click();
   await expect(news).toHaveAttribute("aria-selected", "true");
-  await expect(page).toHaveURL(url);
-  await expect
-    .poll(async () => Math.round((await indicator.boundingBox())!.x))
-    .toBe(Math.round((await news.boundingBox())!.x));
+  await expect(page).toHaveURL(/\/board\/news$/);
+  await expect(indicator).toBeVisible();
   expect((await indicator.boundingBox())!.x).toBeGreaterThan(initial + 30);
   await expect(
     page.getByRole("link", { name: "글쓰기", exact: true }),
   ).toHaveAttribute("href", "/board/news/posts/new");
   await community.click();
   await expect(community).toHaveAttribute("aria-selected", "true");
-  await expect(page).toHaveURL(url);
-  await expect
-    .poll(async () => Math.round((await indicator.boundingBox())!.x))
-    .toBe(Math.round((await community.boundingBox())!.x));
+  await expect(page).toHaveURL(/\/board\/community$/);
+  await expect(indicator).toBeVisible();
 });
 test("board tab switching also works with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/board/news");
-  const url = page.url();
-  await page.getByRole("tab", { name: "커뮤니티", exact: true }).click();
-  await expect(
-    page.getByRole("tab", { name: "커뮤니티", exact: true }),
-  ).toHaveAttribute("aria-selected", "true");
-  await expect(page).toHaveURL(url);
+  const tab = page
+    .getByRole("tablist", { name: "커뮤니티 메뉴", exact: true })
+    .getByRole("tab", { name: "커뮤니티", exact: true });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(/\/board\/community$/);
 });
 
 test("shopping tab opens products and changes channels without navigation", async ({
   page,
 }) => {
   await page.goto("/shop");
-  const url = page.url();
   await expect(page.getByTestId("product-card-1")).toBeVisible();
   await page.getByRole("button", { name: "이용권", exact: true }).click();
   await expect(page.getByTestId("product-card-2")).toBeVisible();
-  await expect(page).toHaveURL(url);
+  await expect(page).toHaveURL(/\/shop\?channel=ticket$/);
   await page.getByRole("button", { name: "스마트오더", exact: true }).click();
   await expect(page.getByTestId("product-card-3")).toBeVisible();
   await expect(
     page.getByText("19세 미만은 주류를 구매할 수 없습니다.", { exact: false }),
   ).toBeVisible();
-  await expect(page).toHaveURL(url);
+  await expect(page).toHaveURL(/\/shop\?channel=smart$/);
 });
 test("mobile catalogue follows the web two-column layout and loads more", async ({
   page,

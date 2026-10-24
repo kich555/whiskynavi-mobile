@@ -1,4 +1,6 @@
-import { CatalogScreen } from "@/features/catalog/screens";
+import { Redirect } from "expo-router";
 export default function Route() {
-  return <CatalogScreen channel="general" />;
+  return (
+    <Redirect href={{ pathname: "/shop", params: { channel: "general" } }} />
+  );
 }
