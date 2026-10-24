@@ -271,5 +271,15 @@
     "route": "/nice/callback",
     "target": "src/app/nice/callback.tsx",
     "screen": "NiceCallbackScreen"
+  },
+  {
+    "route": "/stories",
+    "target": "src/app/(main)/stories/index.tsx",
+    "screen": "StoriesScreen"
+  },
+  {
+    "route": "/stories/[slug]",
+    "target": "src/app/(main)/stories/[slug].tsx",
+    "screen": "StoryScreen"
   }
 ]

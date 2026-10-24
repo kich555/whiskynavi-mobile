@@ -51,3 +51,5 @@ artifacts/
 .e2e-dist-cache.json
 
 .e2e-run.lock/
+
+/node_modules

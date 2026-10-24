@@ -99,6 +99,7 @@ export function BrandHeader() {
             ["/about", "회사소개"],
             ["/brand", "브랜드"],
             ["/archive", "아카이브"],
+            ["/stories", "스토리"],
             ["/general-items", "일반상품"],
             ["/ticket-products", "이용권"],
             ["/smart-order", "스마트오더"],

@@ -446,5 +446,19 @@
     "target": "src/app/(main)/notices/[announcementId].tsx",
     "expect": "위스키내비 서비스 운영 공지입니다.",
     "auth": false
+  },
+  {
+    "route": "/stories",
+    "target": "src/app/(main)/stories/index.tsx",
+    "path": "/stories",
+    "expect": "한 잔 너머의 이야기",
+    "auth": false
+  },
+  {
+    "route": "/stories/[slug]",
+    "target": "src/app/(main)/stories/[slug].tsx",
+    "path": "/stories/hwayo-whisky",
+    "expect": "화요는 위스키일까?",
+    "auth": false
   }
 ]
