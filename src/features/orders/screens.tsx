@@ -485,7 +485,9 @@ function OrderDetail({ smart }: { smart: boolean }) {
       {data?.order ? (
         <OrderSummary order={data.order} refresh={() => void query.refetch()} />
       ) : null}
-      <NavLink href="/my-page?tab=orders">내 주문 목록</NavLink>
+      <NavLink href="/my-page/orders" dismissTo>
+        내 주문 목록
+      </NavLink>
     </Screen>
   );
 }
@@ -643,7 +645,7 @@ export function PaymentResultScreen({
               />
             </>
           ) : (
-            <NavLink href="/my-page?tab=orders">내 주문 확인</NavLink>
+            <NavLink href="/my-page/orders">내 주문 확인</NavLink>
           )}
         </>
       ) : success ? (
@@ -660,7 +662,7 @@ export function PaymentResultScreen({
             onPress={confirm}
           />
           <Message error={task.error} />
-          <NavLink href="/my-page?tab=orders">주문 내역 확인</NavLink>
+          <NavLink href="/my-page/orders">주문 내역 확인</NavLink>
         </>
       ) : (
         <>

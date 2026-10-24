@@ -283,13 +283,20 @@ export function NavLink({
   href,
   children,
   onPress,
+  dismissTo,
 }: {
   href: string;
   children: ReactNode;
   onPress?: () => void;
+  dismissTo?: boolean;
 }) {
   return (
-    <Link href={href as Href} style={styles.link} onPress={onPress}>
+    <Link
+      href={href as Href}
+      style={styles.link}
+      onPress={onPress}
+      dismissTo={dismissTo}
+    >
       {children}
     </Link>
   );
@@ -297,6 +304,7 @@ export function NavLink({
 // Flatten styles before the Expo Router slot merges them on web and native.
 export function SurfaceLink({
   href,
+  dismissTo,
   children,
   style,
   testID,
@@ -307,11 +315,12 @@ export function SurfaceLink({
   style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityLabel?: string;
+  dismissTo?: boolean;
 }) {
   const [pressed, setPressed] = useState(false);
   const [focused, setFocused] = useState(false);
   return (
-    <Link href={href as Href} asChild>
+    <Link href={href as Href} dismissTo={dismissTo} asChild>
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={accessibilityLabel}

@@ -518,7 +518,8 @@ function ReservationContent({ related }: { related: boolean }) {
       {query.isLoading ? <Loading variant="detail" /> : null}
       {notice ? (
         <SurfaceLink
-          href={related ? "/my-page?tab=reservations" : "/reservation"}
+          href={related ? "/my-page/reservations" : "/reservation"}
+          dismissTo
           style={[styles.row, { marginTop: 16, gap: 8 }]}
         >
           <ArrowLeft size={18} color={colors.muted} />
@@ -606,7 +607,7 @@ function ReservationContent({ related }: { related: boolean }) {
                 신청 이력에 연결된 공고입니다. 신청 수량·상태·픽업 정보는 내
                 예약 목록에서 확인할 수 있어요.
               </Label>
-              <NavLink href="/my-page?tab=reservations">
+              <NavLink href="/my-page/reservations" dismissTo>
                 내 예약 목록으로
               </NavLink>
             </AccountSection>

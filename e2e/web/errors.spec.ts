@@ -57,7 +57,7 @@ const cases = [
   },
   {
     name: "orders",
-    path: "/my-page?tab=orders",
+    path: "/my-page/orders",
     api: "/api/2.0/orders",
     ready: "위스키 테이스팅 글라스",
     auth: true,

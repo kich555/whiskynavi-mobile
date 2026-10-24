@@ -3,7 +3,7 @@ import { test, expect, login } from "./fixtures";
 test("profile nickname survives reload and logout clears protected access", async ({
   page,
 }) => {
-  await login(page, "/my-page?tab=profile");
+  await login(page, "/my-page/profile");
   await page
     .getByRole("textbox", { name: "닉네임", exact: true })
     .fill("새닉네임");
@@ -16,7 +16,7 @@ test("profile nickname survives reload and logout clears protected access", asyn
     .getByRole("button", { name: "마이페이지로 돌아가기", exact: true })
     .click();
   await expect(page.getByText("새닉네임님", { exact: true })).toBeVisible();
-  await login(page, "/my-page?tab=profile");
+  await login(page, "/my-page/profile");
   await expect(
     page.getByRole("textbox", { name: "닉네임", exact: true }),
   ).toHaveValue("새닉네임");
@@ -146,7 +146,7 @@ test("owned comment edit and deletion persist after reload", async ({
 test("profile email verification and password change retain explicit validation", async ({
   page,
 }) => {
-  await login(page, "/my-page?tab=profile");
+  await login(page, "/my-page/profile");
   await expect(
     page.getByRole("button", { name: "이메일 변경 저장", exact: true }),
   ).toBeDisabled();
@@ -171,7 +171,7 @@ test("profile email verification and password change retain explicit validation"
   await expect(
     page.getByRole("button", { name: "이메일 인증코드 발송", exact: true }),
   ).toBeDisabled();
-  await login(page, "/my-page?tab=profile", {
+  await login(page, "/my-page/profile", {
     email: "updated@example.test",
     password: "mobile-e2e-123",
   });

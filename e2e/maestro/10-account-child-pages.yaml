@@ -11,25 +11,113 @@ onFlowComplete:
     visible: WHISKYNAVI
     timeout: 20000
 - runFlow: helpers/login.yaml
-- openLink: whiskynavi-e2e://my-page?tab=orders
+- openLink: whiskynavi-e2e://my-page
 - extendedWaitUntil:
-    visible: 주문 내역
+    visible: 모바일테스터님
     timeout: 15000
-- assertVisible: 위스키 테이스팅 글라스
+- scrollUntilVisible:
+    element: "주문 내역"
+    direction: DOWN
+- tapOn: "주문 내역"
+- extendedWaitUntil:
+    visible: "주문 내역"
+    timeout: 15000
+- assertVisible: "위스키 테이스팅 글라스"
 - takeScreenshot: artifacts/account-orders
-- openLink: whiskynavi-e2e://my-page?tab=reservations
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "예약 내역"
+    direction: DOWN
+- tapOn: "예약 내역"
 - extendedWaitUntil:
-    visible: 내 예약 신청
+    visible: "내 예약 신청"
     timeout: 15000
-- assertVisible: 예약 확정
-- openLink: whiskynavi-e2e://my-page?tab=membership
+- assertVisible: "예약 확정"
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "내 이용권 주문"
+    direction: DOWN
+- tapOn: "내 이용권 주문"
 - extendedWaitUntil:
-    visible: 나의 멤버십
+    visible: "내 이용권 주문"
     timeout: 15000
-- assertVisible: 가입됨
+- assertVisible: "위스키 테이스팅 이용권"
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "나의 멤버십.*"
+    direction: DOWN
+- tapOn: "나의 멤버십.*"
+- extendedWaitUntil:
+    visible: "나의 멤버십"
+    timeout: 15000
+- assertVisible: "가입됨"
 - takeScreenshot: artifacts/account-membership
-- openLink: whiskynavi-e2e://my-page?tab=profile
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "내 정보 수정.*"
+    direction: DOWN
+- tapOn: "내 정보 수정.*"
 - extendedWaitUntil:
-    visible: 내 정보 관리
+    visible: "내 정보 관리"
     timeout: 15000
-- assertVisible: 닉네임 저장
+- assertVisible: "닉네임 저장"
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "사업자 등록.*"
+    direction: DOWN
+- tapOn: "사업자 등록.*"
+- extendedWaitUntil:
+    visible: "사업자 등록 신청"
+    timeout: 15000
+- assertVisible: "사업자 정보"
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "자주 묻는 질문"
+    direction: DOWN
+- tapOn: "자주 묻는 질문"
+- extendedWaitUntil:
+    visible: "고객 지원"
+    timeout: 15000
+- assertVisible: "배송은 얼마나 걸리나요?"
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님
+- scrollUntilVisible:
+    element: "1:1 문의"
+    direction: DOWN
+- tapOn: "1:1 문의"
+- extendedWaitUntil:
+    visible: "1:1 문의"
+    timeout: 15000
+- assertVisible: "문의 작성"
+- runFlow: helpers/native-back.yaml
+- scrollUntilVisible:
+    element: 모바일테스터님
+    direction: UP
+- assertVisible: 모바일테스터님

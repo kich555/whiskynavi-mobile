@@ -10,6 +10,7 @@ export default function Layout() {
         headerTintColor: colors.text,
         headerStyle: { backgroundColor: colors.background },
         headerBackTitle: "뒤로",
+        gestureEnabled: true,
         title: "WhiskyNavi",
         headerTitle: () => (
           <Image

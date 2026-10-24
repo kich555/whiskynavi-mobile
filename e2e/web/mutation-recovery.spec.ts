@@ -3,7 +3,7 @@ import { test, expect, login } from "./fixtures";
 test("nickname failure preserves the draft and retry persists it", async ({
   page,
 }) => {
-  await login(page, "/my-page?tab=profile");
+  await login(page, "/my-page/profile");
   const field = page.getByRole("textbox", { name: "닉네임", exact: true });
   const save = page.getByRole("button", { name: "닉네임 저장", exact: true });
   await field.fill("복구닉네임");
@@ -22,7 +22,7 @@ test("nickname failure preserves the draft and retry persists it", async ({
     page.getByText("변경사항을 저장했습니다.", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await login(page, "/my-page?tab=profile");
+  await login(page, "/my-page/profile");
   await expect(field).toHaveValue("복구닉네임");
 });
 

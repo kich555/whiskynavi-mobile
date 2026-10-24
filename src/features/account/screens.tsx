@@ -3,7 +3,7 @@ import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, router } from "expo-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Platform, View, Text, Pressable, StyleSheet } from "react-native";
 import {
   getApiUsersMe,
@@ -81,27 +81,54 @@ import { storage } from "@/lib/storage";
 import { OrdersList } from "@/features/orders/screens";
 import { FAQ_DATA, MEMBERSHIP_INFO, MEMBERSHIP_ROLE } from "./constants";
 
+export const accountSections = {
+  profile: "내 정보 관리",
+  orders: "주문 내역",
+  reservations: "내 예약 신청",
+  membership: "나의 멤버십",
+  business: "사업자 등록",
+  faq: "고객 지원",
+} as const;
+export type AccountSectionName = keyof typeof accountSections;
+
+function isAccountSection(value?: string): value is AccountSectionName {
+  return value !== undefined && Object.hasOwn(accountSections, value);
+}
+
 export function MyPageScreen() {
   return (
     <RequireAuth>
-      <MyPage />
+      <MyPageEntry />
     </RequireAuth>
   );
 }
-function MyPage() {
+
+function MyPageEntry() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const selected = [
-    "overview",
-    "profile",
-    "orders",
-    "reservations",
-    "membership",
-    "business",
-    "faq",
-  ].includes(tab ?? "")
-    ? tab!
-    : "overview";
-  const setSelected = (value: string) => router.setParams({ tab: value });
+  useEffect(() => {
+    if (!isAccountSection(tab)) return;
+    // Preserve legacy links while keeping the overview underneath the child.
+    router.setParams({ tab: undefined });
+    router.push(`/my-page/${tab}`);
+  }, [tab]);
+  return <MyPage selected="overview" />;
+}
+
+export function AccountDetailScreen({
+  section,
+}: {
+  section: AccountSectionName;
+}) {
+  return (
+    <RequireAuth>
+      <MyPage selected={section} />
+    </RequireAuth>
+  );
+}
+
+function MyPage({ selected }: { selected: AccountSectionName | "overview" }) {
+  const openSection = (value: AccountSectionName) =>
+    router.push(`/my-page/${value}`);
   const query = useQuery({
     queryKey: ["me"],
     queryFn: () => getApiUsersMe(),
@@ -110,7 +137,7 @@ function MyPage() {
   if (selected === "orders" || selected === "reservations")
     return (
       <View style={{ flex: 1 }}>
-        <AccountBack onBack={() => setSelected("overview")} />
+        {Platform.OS === "web" ? <AccountBack /> : null}
         {selected === "orders" ? <OrdersList /> : <MyReservations />}
       </View>
     );
@@ -120,19 +147,12 @@ function MyPage() {
       refresh={() => void query.refetch()}
       refreshing={query.isFetching}
     >
-      {selected !== "overview" ? (
-        <AccountBack onBack={() => setSelected("overview")} />
+      {selected !== "overview" && Platform.OS === "web" ? (
+        <AccountBack />
       ) : null}
       {selected !== "overview" ? (
         <Text accessibilityRole="header" style={styles.title}>
-          {(
-            {
-              profile: "내 정보 관리",
-              membership: "나의 멤버십",
-              business: "사업자 등록",
-              faq: "고객 지원",
-            } as Record<string, string>
-          )[selected] ?? "마이페이지"}
+          {accountSections[selected as AccountSectionName]}
         </Text>
       ) : null}
       <Message error={query.error} />
@@ -176,7 +196,7 @@ function MyPage() {
             </View>
           ) : null}
           {selected === "overview" ? (
-            <AccountOverview onChange={setSelected} />
+            <AccountOverview onChange={openSection} />
           ) : null}
           {selected === "profile" ? (
             <ProfileForm key={query.data.data.id} user={query.data.data} />
@@ -219,13 +239,13 @@ function MyPage() {
     </Screen>
   );
 }
-function AccountBack({ onBack }: { onBack: () => void }) {
+function AccountBack() {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="마이페이지로 돌아가기"
-      onPress={onBack}
+      onPress={() => router.dismissTo("/my-page")}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       style={({ pressed }) => ({
@@ -363,7 +383,11 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function AccountOverview({ onChange }: { onChange: (value: string) => void }) {
+function AccountOverview({
+  onChange,
+}: {
+  onChange: (value: AccountSectionName) => void;
+}) {
   return (
     <View style={{ gap: 24 }}>
       <View style={{ gap: 12 }}>

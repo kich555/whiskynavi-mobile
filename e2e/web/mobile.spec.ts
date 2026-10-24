@@ -765,6 +765,8 @@ test("visual regression: glass filter selection", async ({ page }) => {
   await page.goto("/archive");
   await page.getByRole("button", { name: "필터", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  // Wait for the sheet to settle before Playwright scrolls a checkbox into view.
+  await expect(page.getByTestId("dropdown-dim")).toHaveCSS("opacity", "1");
   const choice = page.getByRole("checkbox", {
     name: "WhiskyNavi",
     exact: true,
@@ -1258,7 +1260,7 @@ for (const entry of [
   },
   {
     name: "order history",
-    path: "/my-page?tab=orders",
+    path: "/my-page/orders",
     api: "/api/2.0/orders",
     variant: "rows",
     ready: "위스키 테이스팅 글라스",
@@ -1266,7 +1268,7 @@ for (const entry of [
   },
   {
     name: "reservation history",
-    path: "/my-page?tab=reservations",
+    path: "/my-page/reservations",
     api: "/api/bottles/reservations/applications/me",
     variant: "rows",
     ready: "싱글캐스크 예약",
@@ -1274,7 +1276,7 @@ for (const entry of [
   },
   {
     name: "business",
-    path: "/my-page?tab=business",
+    path: "/my-page/business",
     api: "/api/users/businesses/applications/me/overview",
     variant: "form",
     ready: "사업장명",
@@ -1391,7 +1393,7 @@ test("account child pages retain context and grouped information", async ({
   request,
 }) => {
   await request.post("http://127.0.0.1:8787/__test/seed-account");
-  await login(page, "/my-page?tab=orders");
+  await login(page, "/my-page/orders");
   await page.getByRole("link", { name: /위스키 테이스팅 글라스/ }).click();
   await expect(
     page.getByRole("heading", { name: "주문 정보", exact: true }),
@@ -1536,12 +1538,12 @@ for (const viewport of [
     ["ticket-detail", "/my-page/ticket-orders/2", "주문 정보"],
     ["reservation-detail", "/my-page/reservations/1", "예약 공고 확인"],
     ["inquiry-detail", "/my-page/inquiries/1", "픽업 일정에 대해 문의드립니다"],
-    ["orders", "/my-page?tab=orders", "주문 내역"],
-    ["reservations", "/my-page?tab=reservations", "내 예약 신청"],
-    ["membership", "/my-page?tab=membership", "나의 멤버십"],
-    ["profile", "/my-page?tab=profile", "내 정보 관리"],
-    ["business", "/my-page?tab=business", "사업자 정보"],
-    ["help", "/my-page?tab=faq", "고객 지원"],
+    ["orders", "/my-page/orders", "주문 내역"],
+    ["reservations", "/my-page/reservations", "내 예약 신청"],
+    ["membership", "/my-page/membership", "나의 멤버십"],
+    ["profile", "/my-page/profile", "내 정보 관리"],
+    ["business", "/my-page/business", "사업자 정보"],
+    ["help", "/my-page/faq", "고객 지원"],
     ["order-detail", "/my-page/order/1", "주문 정보"],
     ["inquiries", "/my-page/inquiries", "1:1 문의"],
   ]) {
