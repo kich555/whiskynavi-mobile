@@ -184,7 +184,6 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
   const [pressed, setPressed] = useState(false);
   const { width, fontScale } = useWindowDimensions();
   const padding = width >= 375 || fontScale > 1.3 ? 16 : 10;
-  const imagePadding = width >= 375 ? 16 : 6;
   return (
     <Link href={`/archive/${bottle.id}`} asChild>
       <Pressable
@@ -200,7 +199,7 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
       >
         <View style={{ aspectRatio: 1, marginBottom: 8 }}>
           {bottle.imgUrl ? (
-            <View style={[StyleSheet.absoluteFill, { margin: imagePadding }]}>
+            <View style={StyleSheet.absoluteFill}>
               <Photo
                 uri={bottle.imgUrl}
                 label={bottle.name ?? "위스키"}
@@ -211,7 +210,7 @@ export function BottleCard({ bottle }: { bottle: BottleResponse }) {
             <Image
               source={require("../../../assets/brand/default-bottle-v2.png")}
               contentFit="contain"
-              style={[StyleSheet.absoluteFill, { margin: imagePadding }]}
+              style={StyleSheet.absoluteFill}
             />
           )}
         </View>
