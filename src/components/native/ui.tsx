@@ -12,7 +12,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 import { Check, ImageIcon } from "lucide-react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,6 +22,8 @@ import {
   type ComponentRef,
   type ReactNode,
   useEffect,
+  useLayoutEffect,
+  useCallback,
   useRef,
   useState,
 } from "react";
@@ -1060,12 +1062,39 @@ export function Sheet({
   const origin = useSharedValue(0);
   const sheetHeight = useSharedValue(0);
   const closing = useSharedValue(false);
-  useEffect(() => {
+  const ready = useSharedValue(false);
+  const heading = useRef<ComponentRef<typeof Text>>(null);
+  const focusHeading = useCallback(() => {
+    if (Platform.OS !== "web" && heading.current)
+      AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
+  }, []);
+  useLayoutEffect(() => {
     if (visible) {
       offset.set(0);
       closing.set(false);
+      ready.set(false);
     }
-  }, [visible, offset, closing]);
+  }, [visible, offset, closing, ready]);
+  // The modal itself never slides: panel movement and dim opacity share one offset.
+  const dismiss = useCallback(() => {
+    "worklet";
+    if (closing.get()) return;
+    closing.set(true);
+    offset.set(
+      withTiming(
+        sheetHeight.get() + 24,
+        {
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        },
+        (finished) => {
+          if (finished) scheduleOnRN(onDismiss);
+        },
+      ),
+    );
+  }, [closing, offset, sheetHeight, onDismiss]);
+  const requestDismiss = useCallback(() => scheduleOnUI(dismiss), [dismiss]);
   const drag = usePanGesture({
     enabled: visible,
     activeOffsetY: 8,
@@ -1090,20 +1119,7 @@ export function Sheet({
         (offset.get() > 80 ||
           (event.translationY > 16 && event.velocityY > 900))
       ) {
-        closing.set(true);
-        offset.set(
-          withTiming(
-            sheetHeight.get() + 24,
-            {
-              duration: 180,
-              easing: Easing.out(Easing.cubic),
-              reduceMotion: ReduceMotion.System,
-            },
-            (finished) => {
-              if (finished) scheduleOnRN(onDismiss);
-            },
-          ),
-        );
+        dismiss();
       } else {
         offset.set(
           withSpring(0, {
@@ -1127,9 +1143,17 @@ export function Sheet({
     },
   });
   const dragStyle = useAnimatedStyle(() => ({
+    opacity: ready.get() ? 1 : 0,
     transform: [{ translateY: offset.get() }],
   }));
-  const heading = useRef<ComponentRef<typeof Text>>(null);
+  const dimStyle = useAnimatedStyle(() => ({
+    opacity: ready.get()
+      ? Math.max(
+          0,
+          Math.min(1, 1 - offset.get() / Math.max(sheetHeight.get() + 24, 1)),
+        )
+      : 0,
+  }));
   const wasVisible = useRef(false);
   useEffect(() => {
     if (!visible && wasVisible.current && Platform.OS !== "web") {
@@ -1148,13 +1172,9 @@ export function Sheet({
   return (
     <Modal
       visible={visible}
-      onShow={() => {
-        if (Platform.OS !== "web" && heading.current)
-          AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
-      }}
       transparent
-      animationType="slide"
-      onRequestClose={onDismiss}
+      animationType="none"
+      onRequestClose={requestDismiss}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardAvoidingView
@@ -1162,22 +1182,48 @@ export function Sheet({
           style={{
             flex: 1,
             justifyContent: "flex-end",
-            backgroundColor: "#00000088",
           }}
         >
+          <Animated.View
+            pointerEvents="none"
+            testID="dropdown-dim"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "#00000088" },
+              dimStyle,
+            ]}
+          />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="닫기"
-            onPress={onDismiss}
+            onPress={requestDismiss}
             style={{ flex: 1 }}
           />
           <AnimatedSafeAreaView
             testID="dropdown-sheet"
             onLayout={(event) => {
-              sheetHeight.set(event.nativeEvent.layout.height);
+              const height = event.nativeEvent.layout.height;
+              sheetHeight.set(height);
+              if (visible && !ready.get()) {
+                offset.set(height + 24);
+                ready.set(true);
+                offset.set(
+                  withTiming(
+                    0,
+                    {
+                      duration: 220,
+                      easing: Easing.out(Easing.cubic),
+                      reduceMotion: ReduceMotion.System,
+                    },
+                    (finished) => {
+                      if (finished) scheduleOnRN(focusHeading);
+                    },
+                  ),
+                );
+              }
             }}
             accessibilityViewIsModal
-            onAccessibilityEscape={onDismiss}
+            onAccessibilityEscape={requestDismiss}
             edges={["bottom"]}
             style={[
               {
@@ -1219,7 +1265,7 @@ export function Sheet({
                   >
                     {title}
                   </Text>
-                  <Action secondary title="완료" onPress={onDismiss} />
+                  <Action secondary title="완료" onPress={requestDismiss} />
                 </View>
               </View>
             </GestureDetector>

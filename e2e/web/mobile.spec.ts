@@ -1638,6 +1638,17 @@ test("dropdown header drags follow the pointer, rebound and dismiss", async ({
   const header = page.getByTestId("dropdown-drag-header");
   await open.click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("dropdown-sheet")
+        .evaluate(
+          (el) =>
+            Number(getComputedStyle(el).opacity) > 0.99 &&
+            Math.abs(new DOMMatrix(getComputedStyle(el).transform).m42) < 1,
+        ),
+    )
+    .toBe(true);
   const initial = (await sheet.boundingBox())!.y;
   let box = (await header.boundingBox())!;
   const x = box.x + box.width / 2,
@@ -1673,6 +1684,17 @@ test("dropdown header drags follow the pointer, rebound and dismiss", async ({
   // The fixed title area is a drag target too, not just the small handle.
   await open.click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("dropdown-sheet")
+        .evaluate(
+          (el) =>
+            Number(getComputedStyle(el).opacity) > 0.99 &&
+            Math.abs(new DOMMatrix(getComputedStyle(el).transform).m42) < 1,
+        ),
+    )
+    .toBe(true);
   box = (await header.boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + 76);
   await page.mouse.down();
@@ -1682,9 +1704,21 @@ test("dropdown header drags follow the pointer, rebound and dismiss", async ({
   await open.click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect
+    .poll(() =>
+      page
+        .getByTestId("dropdown-sheet")
+        .evaluate(
+          (el) =>
+            Number(getComputedStyle(el).opacity) > 0.99 &&
+            Math.abs(new DOMMatrix(getComputedStyle(el).transform).m42) < 1,
+        ),
+    )
+    .toBe(true);
+  await expect
     .poll(async () => Math.abs(((await sheet.boundingBox())?.y ?? 0) - initial))
     .toBeLessThan(1);
   await page.getByRole("button", { name: "완료", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("shared menu dropdown dismisses with a downward touch drag", async ({
@@ -1693,6 +1727,17 @@ test("shared menu dropdown dismisses with a downward touch drag", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "메뉴 열기", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("dropdown-sheet")
+        .evaluate(
+          (el) =>
+            Number(getComputedStyle(el).opacity) > 0.99 &&
+            Math.abs(new DOMMatrix(getComputedStyle(el).transform).m42) < 1,
+        ),
+    )
+    .toBe(true);
   const header = (await page
     .getByTestId("dropdown-drag-header")
     .boundingBox())!;
@@ -1713,4 +1758,42 @@ test("shared menu dropdown dismisses with a downward touch drag", async ({
     touchPoints: [],
   });
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("dropdown dim fades with the panel during a held drag", async ({
+  page,
+}) => {
+  await page.goto("/archive");
+  await page.getByRole("button", { name: "필터", exact: true }).click();
+  const sheet = page.getByTestId("dropdown-sheet"),
+    header = page.getByTestId("dropdown-drag-header"),
+    dim = page.getByTestId("dropdown-dim");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("dropdown-sheet")
+        .evaluate(
+          (el) =>
+            Number(getComputedStyle(el).opacity) > 0.99 &&
+            Math.abs(new DOMMatrix(getComputedStyle(el).transform).m42) < 1,
+        ),
+    )
+    .toBe(true);
+  const opacity = () =>
+    dim.evaluate((el) => Number(getComputedStyle(el).opacity));
+  const before = await opacity();
+  const initial = (await sheet.boundingBox())!.y;
+  const r = (await header.boundingBox())!;
+  await page.mouse.move(r.x + r.width / 2, r.y + 22);
+  await page.mouse.down();
+  await page.mouse.move(r.x + r.width / 2, r.y + 82, { steps: 10 });
+  await expect
+    .poll(async () => ((await sheet.boundingBox())?.y ?? initial) - initial)
+    .toBeGreaterThan(30);
+  await expect.poll(opacity).toBeLessThan(before - 0.02);
+  await page.mouse.move(r.x + r.width / 2, r.y + 160, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(dim).not.toBeVisible();
 });
