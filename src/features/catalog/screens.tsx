@@ -1,3 +1,4 @@
+import { decorativeIconAccessibility } from "@/lib/icon-accessibility";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { PageHero } from "@/components/native/brand";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { randomUUID } from "expo-crypto";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -272,8 +274,7 @@ export function CatalogScreen({
                 <ArrowUpRight
                   size={14}
                   color={colors.muted}
-                  aria-hidden
-                  accessibilityElementsHidden
+                  {...decorativeIconAccessibility(Platform.OS)}
                 />
               </View>
             </View>

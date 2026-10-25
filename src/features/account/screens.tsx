@@ -1,3 +1,4 @@
+import { decorativeIconAccessibility } from "@/lib/icon-accessibility";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
 import { statusLabel } from "@/lib/status-label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -266,8 +267,7 @@ function AccountBack() {
       <ArrowLeft
         size={18}
         color={colors.muted}
-        aria-hidden
-        accessibilityElementsHidden
+        {...decorativeIconAccessibility(Platform.OS)}
       />
       <Text style={accountStyles.rowLabel}>마이페이지</Text>
     </Pressable>
@@ -320,8 +320,7 @@ function MembershipCards({ user }: { user: UserSelfResponse }) {
                 <Check
                   size={16}
                   color={colors.muted}
-                  aria-hidden
-                  accessibilityElementsHidden
+                  {...decorativeIconAccessibility(Platform.OS)}
                 />
                 <Text style={[accountUI.body, { flex: 1 }]}>{benefit}</Text>
               </View>
@@ -334,15 +333,13 @@ function MembershipCards({ user }: { user: UserSelfResponse }) {
           <MessageCircle
             size={18}
             color={colors.muted}
-            aria-hidden
-            accessibilityElementsHidden
+            {...decorativeIconAccessibility(Platform.OS)}
           />
           <Text style={[accountUI.body, { flex: 1 }]}>멤버십 관련 문의</Text>
           <ChevronRight
             size={18}
             color={colors.muted}
-            aria-hidden
-            accessibilityElementsHidden
+            {...decorativeIconAccessibility(Platform.OS)}
           />
         </View>
       </SurfaceLink>
@@ -373,8 +370,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
           size={18}
           color={colors.muted}
           style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}
-          aria-hidden
-          accessibilityElementsHidden
+          {...decorativeIconAccessibility(Platform.OS)}
         />
       </Pressable>
       {open ? (
@@ -414,8 +410,7 @@ function AccountOverview({
             <Ticket
               size={23}
               color={colors.text}
-              aria-hidden
-              accessibilityElementsHidden
+              {...decorativeIconAccessibility(Platform.OS)}
             />
             <Text style={accountStyles.rowLabel}>이용권 주문</Text>
           </SurfaceLink>
@@ -460,15 +455,13 @@ function AccountOverview({
             <MessageCircle
               size={19}
               color={colors.muted}
-              aria-hidden
-              accessibilityElementsHidden
+              {...decorativeIconAccessibility(Platform.OS)}
             />
             <Text style={[accountStyles.rowLabel, { flex: 1 }]}>1:1 문의</Text>
             <ChevronRight
               size={17}
               color={colors.muted}
-              aria-hidden
-              accessibilityElementsHidden
+              {...decorativeIconAccessibility(Platform.OS)}
             />
           </SurfaceLink>
         </View>
@@ -539,8 +532,7 @@ function AccountRow({
       <ChevronRight
         size={17}
         color={colors.muted}
-        aria-hidden
-        accessibilityElementsHidden
+        {...decorativeIconAccessibility(Platform.OS)}
       />
     </Pressable>
   );
@@ -847,8 +839,7 @@ function MyReservations() {
             <CalendarDays
               size={18}
               color={colors.muted}
-              aria-hidden
-              accessibilityElementsHidden
+              {...decorativeIconAccessibility(Platform.OS)}
             />
           </View>
           <View style={accountUI.divider} />

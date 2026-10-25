@@ -1,3 +1,4 @@
+import { decorativeIconAccessibility } from "@/lib/icon-accessibility";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
 import { Play, Video, X } from "lucide-react-native";
@@ -9,6 +10,7 @@ import {
   type ComponentRef,
 } from "react";
 import {
+  Platform,
   ActivityIndicator,
   AppState,
   Linking,
@@ -68,8 +70,7 @@ function VideoCard({ videoId }: { videoId: string }) {
         <Video
           size={24}
           color={colors.muted}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
+          {...decorativeIconAccessibility(Platform.OS)}
         />
       </View>
       <View

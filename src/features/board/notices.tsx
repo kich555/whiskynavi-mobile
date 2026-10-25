@@ -1,3 +1,4 @@
+import { decorativeIconAccessibility } from "@/lib/icon-accessibility";
 import { getApiBoardsAnnouncementsGlobal } from "@/apis/generated/api";
 import {
   InfiniteList,
@@ -7,7 +8,7 @@ import {
   colors,
 } from "@/components/native/ui";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
-import { View, Text } from "react-native";
+import { Platform, View, Text } from "react-native";
 import { Pin, ChevronRight } from "lucide-react-native";
 
 export function NoticesScreen() {
@@ -39,8 +40,7 @@ export function NoticesScreen() {
               <Pin
                 size={15}
                 color={colors.muted}
-                accessibilityElementsHidden
-                aria-hidden
+                {...decorativeIconAccessibility(Platform.OS)}
               />
             ) : null}
             <View style={{ flex: 1 }}>
@@ -49,8 +49,7 @@ export function NoticesScreen() {
             <ChevronRight
               size={18}
               color={colors.muted}
-              accessibilityElementsHidden
-              aria-hidden
+              {...decorativeIconAccessibility(Platform.OS)}
             />
           </View>
           <Text

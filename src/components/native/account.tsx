@@ -1,5 +1,6 @@
+import { decorativeIconAccessibility } from "@/lib/icon-accessibility";
 import type { ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { SurfaceLink, colors } from "./ui";
 export type StatusTone = "neutral" | "positive" | "warning" | "danger";
@@ -111,8 +112,7 @@ export function HistoryCard({
         <ChevronRight
           size={18}
           color={colors.muted}
-          aria-hidden
-          accessibilityElementsHidden
+          {...decorativeIconAccessibility(Platform.OS)}
         />
       </View>
       {children}
