@@ -90,7 +90,7 @@ export default function Layout() {
             },
             {
               name: "main-community",
-              href: "/notices",
+              href: "/board/news",
               label: "커뮤니티",
               icon: MessagesSquare,
             },

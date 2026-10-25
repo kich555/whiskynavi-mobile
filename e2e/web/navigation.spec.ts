@@ -1,6 +1,6 @@
 import { test, expect, login } from "./fixtures";
 
-test("five destination navigation uses brand reservation and notice defaults and preserves sections", async ({
+test("five destination navigation uses brand reservation and news defaults and preserves sections", async ({
   page,
   request,
 }) => {
@@ -62,16 +62,18 @@ test("five destination navigation uses brand reservation and notice defaults and
     page.getByText("위스키 테이스팅 이용권", { exact: false }).first(),
   ).toBeVisible();
   await bottom.getByRole("tab", { name: "커뮤니티", exact: true }).click();
-  await expect(page).toHaveURL(/\/notices$/);
-  await expect(page.getByTestId("notice-row-81")).toBeVisible();
+  await expect(page).toHaveURL(/\/board\/news$/);
   const community = page.getByRole("tablist", {
     name: "커뮤니티 메뉴",
     exact: true,
   });
   await expect(
-    community.getByRole("tab", { name: "공지", exact: true }),
+    community.getByRole("tab", { name: "소식", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
-  await community.getByRole("tab", { name: "소식", exact: true }).click();
+  await expect(community.getByRole("tab")).toHaveCount(3);
+  await expect(
+    community.getByRole("tab", { name: "공지", exact: true }),
+  ).toHaveCount(0);
   await expect(page).toHaveURL(/\/board\/news$/);
   await bottom.getByRole("tab", { name: "아카이브", exact: true }).click();
   await expect(page).toHaveURL(/\/archive$/);
@@ -92,19 +94,11 @@ test("five destination navigation uses brand reservation and notice defaults and
   ).toBeVisible();
   await bottom.getByRole("tab", { name: "커뮤니티", exact: true }).click();
   await expect(page).toHaveURL(/\/board\/news$/);
-  await community.getByRole("tab", { name: "공지", exact: true }).click();
-  await page.getByTestId("notice-row-81").click();
-  await expect(page).toHaveURL(/\/notices\/81$/);
-  await expect(
-    page.getByText("위스키내비 서비스 운영 공지입니다.", { exact: true }),
-  ).toBeVisible();
-  await page.goBack();
-  await expect(page).toHaveURL(/\/notices$/);
   await expect(
     bottom.getByRole("tab", { name: "커뮤니티", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await page.screenshot({
-    path: "artifacts/navigation-notices.png",
+    path: "artifacts/navigation-news.png",
     scale: "css",
   });
 });
@@ -237,12 +231,12 @@ for (const width of [320, 390, 430, 844]) {
     page,
   }) => {
     await page.setViewportSize({ width, height: width === 844 ? 390 : 844 });
-    await page.goto("/notices");
+    await page.goto("/board/news");
     const menu = page.getByRole("tablist", {
       name: "커뮤니티 메뉴",
       exact: true,
     });
-    await expect(menu.getByRole("tab")).toHaveCount(4);
+    await expect(menu.getByRole("tab")).toHaveCount(3);
     const story = menu.getByRole("tab", { name: "스토리", exact: true });
     await story.click();
     await expect(page).toHaveURL(/\/stories$/);
@@ -281,7 +275,7 @@ for (const width of [320, 390, 430, 844]) {
     ).toBeVisible();
     await page.goBack();
     await expect(search).toHaveValue("화요");
-    await menu.getByRole("tab", { name: "공지", exact: true }).click();
+    await menu.getByRole("tab", { name: "소식", exact: true }).click();
     await story.focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/stories$/);

@@ -5,3 +5,8 @@
 상태: 수락·구현 — 2026-10-25. 네이티브 실기기 검증은 별도다.
 
 [상세 설계](../navigation-discussion.md) · [Expo NativeTabs 제약](https://docs.expo.dev/router/advanced/native-tabs/#known-limitations)
+
+
+## 2026-10-25 후속 결정
+
+사용자 요청으로 커뮤니티의 공지 탭을 제거한다. 소식 / 커뮤니티 / 스토리로 구성하며 소식을 첫 번째/기본 탭으로 사용한다. 기존 공지 목록/상세 URL은 독립 Stack 화면으로 유지한다. 다른 하단 메뉴와 보조 탭의 재방문 상태 보존 계약은 유지한다.

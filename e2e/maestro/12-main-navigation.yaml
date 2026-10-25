@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: Five main destinations and brand reservation notice defaults
+name: Five main destinations and brand reservation news defaults
 onFlowComplete:
   - runScript: helpers/cleanup.js
 ---
@@ -22,9 +22,9 @@ onFlowComplete:
 - assertNotVisible: 로그인이 필요합니다
 - tapOn: 커뮤니티
 - extendedWaitUntil:
-    visible: 서비스 이용 안내
+    visible: 위스키 소식
     timeout: 15000
-- takeScreenshot: artifacts/navigation-notices
+- takeScreenshot: artifacts/navigation-news
 - tapOn: 마이
 - extendedWaitUntil:
     visible: 모바일테스터님

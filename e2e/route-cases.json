@@ -436,7 +436,7 @@
   {
     "route": "/notices",
     "path": "/notices",
-    "target": "src/app/(main)/(tabs)/(community)/notices.tsx",
+    "target": "src/app/(main)/notices/index.tsx",
     "expect": "서비스 이용 안내",
     "auth": false
   },
