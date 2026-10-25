@@ -83,9 +83,6 @@ export function HomeScreen() {
       }
       contentStyle={{ padding: 0, gap: 0 }}
     >
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-        <NavLink href="/stories">위스키 스토리 · 칼럼과 증류소 이야기</NavLink>
-      </View>
       <HomeBanner
         banners={bannersQuery.data?.data.content ?? []}
         loading={bannersQuery.isPending}
