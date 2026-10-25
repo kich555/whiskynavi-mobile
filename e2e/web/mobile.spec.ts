@@ -468,7 +468,7 @@ test("home banner uses dots and restarts autoplay after manual selection", async
         page
           .getByTestId("home-banner-scroll")
           .evaluate(
-            (el, i) => Math.abs(el.scrollLeft - el.clientWidth * i),
+            (el, i) => Math.abs(el.scrollLeft - el.clientWidth * (i + 1)),
             index,
           ),
       )

@@ -4,6 +4,7 @@ import { useFocusEffect } from "expo-router";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentRef,
@@ -25,19 +26,26 @@ import {
 import { Action, Label, Loading, go, styles } from "./ui";
 
 const INTERVAL = 5000;
-export function HomeBanner({
-  banners,
-  loading,
-  error,
-  retry,
-}: {
+type HomeBannerProps = {
   banners: UserBannerResponse[];
   loading: boolean;
   error: boolean;
   retry: () => void;
-}) {
+};
+export function HomeBanner(props: HomeBannerProps) {
+  return (
+    <BannerPager
+      key={JSON.stringify(
+        props.banners.map((banner) => [banner.id, banner.backgroundUrl]),
+      )}
+      {...props}
+    />
+  );
+}
+function BannerPager({ banners, loading, error, retry }: HomeBannerProps) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
-  const previousWidth = useRef(0);
+  const selected = useRef(0);
+  const lastOffset = useRef(0);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -52,6 +60,8 @@ export function HomeBanner({
   const [motionAllowed, setMotionAllowed] = useState(false);
   const { height } = useWindowDimensions();
   const count = banners.length;
+  const looping = count > 1;
+  const bannerHeight = Math.max(440, Math.min(620, height - 220));
   const current = Math.min(index, Math.max(0, count - 1));
   useFocusEffect(
     useCallback(() => {
@@ -106,14 +116,16 @@ export function HomeBanner({
   }, []);
   const select = useCallback(
     (next: number, animate = true) => {
-      setIndex(next);
+      const normalized = count ? ((next % count) + count) % count : 0;
+      selected.current = normalized;
+      setIndex(normalized);
       restart((n) => n + 1);
       scroll.current?.scrollTo({
-        x: next * width,
+        x: (next + (looping ? 1 : 0)) * width,
         animated: animate && motionAllowed,
       });
     },
-    [width, motionAllowed],
+    [width, motionAllowed, count, looping],
   );
   // A fresh timeout starts after every settled swipe or dot selection, even on the same dot.
   useEffect(() => {
@@ -126,10 +138,7 @@ export function HomeBanner({
       interacting
     )
       return;
-    const timer = setTimeout(
-      () => select((current + 1) % count, current < count - 1),
-      INTERVAL,
-    );
+    const timer = setTimeout(() => select(current + 1), INTERVAL);
     return () => clearTimeout(timer);
   }, [
     count,
@@ -142,145 +151,176 @@ export function HomeBanner({
     revision,
     select,
   ]);
-  useEffect(() => {
-    if (previousWidth.current !== width) {
-      scroll.current?.scrollTo({ x: current * width, animated: false });
-      previousWidth.current = width;
-    }
-  }, [width, current]);
+  useLayoutEffect(() => {
+    clearTimeout(scrollTimer.current);
+    if (width)
+      scroll.current?.scrollTo({
+        x: (selected.current + (looping ? 1 : 0)) * width,
+        animated: false,
+      });
+  }, [width, looping]);
   const settleOffset = (offset: number) => {
-    if (!width) return;
-    setIndex(Math.max(0, Math.min(count - 1, Math.round(offset / width))));
+    if (!width || !count || touching.current) return;
+    const page = Math.round(offset / width);
+    // Never rebase while a finger or momentum is between pages.
+    if (Math.abs(offset - page * width) > 1) return;
+    const next = (((page - (looping ? 1 : 0)) % count) + count) % count;
+    selected.current = next;
+    setIndex(next);
+    if (looping && (page === 0 || page === count + 1)) {
+      scroll.current?.scrollTo({ x: (next + 1) * width, animated: false });
+    }
     setInteracting(touching.current);
     restart((n) => n + 1);
   };
+  const releaseTouch = () => {
+    touching.current = false;
+    clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(
+      () => settleOffset(lastOffset.current),
+      150,
+    );
+  };
   const settle = (event: NativeSyntheticEvent<NativeScrollEvent>) =>
     settleOffset(event.nativeEvent.contentOffset.x);
-  const slides: (UserBannerResponse | undefined)[] = count
-    ? banners
-    : [undefined];
+  const slides: (UserBannerResponse | undefined)[] = looping
+    ? [banners[count - 1], ...banners, banners[0]]
+    : count
+      ? banners
+      : [undefined];
   return (
     <View
       testID="home-banner"
+      style={{ minHeight: bannerHeight }}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
     >
-      <ScrollView
-        ref={scroll}
-        horizontal
-        pagingEnabled
-        directionalLockEnabled
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        scrollEnabled={count > 1}
-        testID="home-banner-scroll"
-        scrollEventThrottle={16}
-        onScroll={(event) => {
-          setInteracting(true);
-          clearTimeout(scrollTimer.current);
-          const offset = event.nativeEvent.contentOffset.x;
-          scrollTimer.current = setTimeout(() => settleOffset(offset), 150);
-        }}
-        onScrollBeginDrag={() => setInteracting(true)}
-        onScrollEndDrag={settle}
-        onMomentumScrollEnd={settle}
-        onTouchStart={() => {
-          touching.current = true;
-          setInteracting(true);
-        }}
-        onTouchEnd={() => {
-          touching.current = false;
-          setInteracting(false);
-          restart((n) => n + 1);
-        }}
-        onTouchCancel={() => {
-          touching.current = false;
-          setInteracting(false);
-          restart((n) => n + 1);
-        }}
-      >
-        {slides.map((banner, i) => (
-          <View
-            key={banner?.id ?? "fallback"}
-            testID={i === current ? "active-home-banner" : undefined}
-            accessibilityElementsHidden={i !== current}
-            importantForAccessibility={
-              i === current ? "auto" : "no-hide-descendants"
-            }
-            aria-hidden={i !== current}
-            style={{
-              width: width || 1,
-              minHeight: Math.max(440, Math.min(620, height - 220)),
-              paddingVertical: 96,
-              paddingHorizontal: 24,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Image
-              source={
-                banner?.backgroundUrl
-                  ? { uri: banner.backgroundUrl }
-                  : require("../../../assets/brand/bg-sample.png")
-              }
-              contentFit="cover"
-              style={StyleSheet.absoluteFill}
-            />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: "#00000080" },
-              ]}
-            />
-            {loading ? (
-              <Loading variant="hero" />
-            ) : (
-              <View style={{ alignItems: "center", gap: 12 }}>
-                <Text
-                  style={{
-                    fontFamily: "NaviSansMedium",
-                    fontSize: 20,
-                    lineHeight: 28,
-                    textAlign: "center",
-                    color: "white",
-                  }}
-                >
-                  {banner?.title ?? "위스키를 탐험하는 새로운 방법"}
-                </Text>
-                {banner?.description ? (
-                  <Text
-                    style={[
-                      styles.text,
-                      { textAlign: "center", color: "#ffffffe6" },
-                    ]}
-                  >
-                    {banner.description}
-                  </Text>
-                ) : null}
-                {banner ? (
-                  <Action
-                    title="자세히 보기"
-                    onPress={() => {
-                      if (
-                        banner.link?.startsWith("/") &&
-                        !banner.link.startsWith("//")
-                      )
-                        go(banner.link);
-                      else if (/^https:\/\//.test(banner.link ?? ""))
-                        void Linking.openURL(banner.link!);
-                    }}
-                  />
+      {width > 0 ? (
+        <ScrollView
+          ref={scroll}
+          horizontal
+          pagingEnabled
+          directionalLockEnabled
+          decelerationRate="fast"
+          disableIntervalMomentum
+          snapToInterval={width}
+          bounces={false}
+          overScrollMode="never"
+          contentOffset={{ x: looping ? width : 0, y: 0 }}
+          showsHorizontalScrollIndicator={false}
+          scrollEnabled={count > 1}
+          testID="home-banner-scroll"
+          scrollEventThrottle={16}
+          onScroll={(event) => {
+            setInteracting(true);
+            clearTimeout(scrollTimer.current);
+            const offset = event.nativeEvent.contentOffset.x;
+            lastOffset.current = offset;
+            scrollTimer.current = setTimeout(() => settleOffset(offset), 150);
+          }}
+          onScrollBeginDrag={() => setInteracting(true)}
+          onScrollEndDrag={(event) => {
+            if (event.nativeEvent.velocity?.x === 0) settle(event);
+          }}
+          onMomentumScrollEnd={settle}
+          onTouchStart={() => {
+            touching.current = true;
+            setInteracting(true);
+          }}
+          onTouchEnd={releaseTouch}
+          onTouchCancel={releaseTouch}
+        >
+          {slides.map((banner, page) => {
+            const original = page - (looping ? 1 : 0);
+            const isCurrent = original === current;
+            return (
+              <View
+                key={`${page}:${banner?.id ?? "fallback"}`}
+                testID={isCurrent ? "active-home-banner" : undefined}
+                accessibilityElementsHidden={!isCurrent}
+                importantForAccessibility={
+                  isCurrent ? "auto" : "no-hide-descendants"
+                }
+                aria-hidden={!isCurrent}
+                style={{
+                  width: width || 1,
+                  minHeight: bannerHeight,
+                  paddingVertical: 96,
+                  paddingHorizontal: 24,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Image
+                  source={
+                    banner?.backgroundUrl
+                      ? { uri: banner.backgroundUrl }
+                      : require("../../../assets/brand/bg-sample.png")
+                  }
+                  contentFit="cover"
+                  style={StyleSheet.absoluteFill}
+                />
+                <View
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: "#00000080" },
+                  ]}
+                />
+                {loading ? (
+                  <Loading variant="hero" />
+                ) : (
+                  <View style={{ alignItems: "center", gap: 12 }}>
+                    <Text
+                      style={{
+                        fontFamily: "NaviSansMedium",
+                        fontSize: 20,
+                        lineHeight: 28,
+                        textAlign: "center",
+                        color: "white",
+                      }}
+                    >
+                      {banner?.title ?? "위스키를 탐험하는 새로운 방법"}
+                    </Text>
+                    {banner?.description ? (
+                      <Text
+                        style={[
+                          styles.text,
+                          { textAlign: "center", color: "#ffffffe6" },
+                        ]}
+                      >
+                        {banner.description}
+                      </Text>
+                    ) : null}
+                    {banner ? (
+                      <Action
+                        title="자세히 보기"
+                        onPress={() => {
+                          if (
+                            banner.link?.startsWith("/") &&
+                            !banner.link.startsWith("//")
+                          )
+                            go(banner.link);
+                          else if (/^https:\/\//.test(banner.link ?? ""))
+                            void Linking.openURL(banner.link!);
+                        }}
+                      />
+                    ) : null}
+                  </View>
+                )}
+                {error ? (
+                  <View style={{ marginTop: 16, gap: 8 }}>
+                    <Label>배너를 불러오지 못했어요.</Label>
+                    <Action
+                      secondary
+                      title="배너 다시 불러오기"
+                      onPress={retry}
+                    />
+                  </View>
                 ) : null}
               </View>
-            )}
-            {error ? (
-              <View style={{ marginTop: 16, gap: 8 }}>
-                <Label>배너를 불러오지 못했어요.</Label>
-                <Action secondary title="배너 다시 불러오기" onPress={retry} />
-              </View>
-            ) : null}
-          </View>
-        ))}
-      </ScrollView>
+            );
+          })}
+        </ScrollView>
+      ) : null}
       {count > 1 ? (
         <View
           style={{
