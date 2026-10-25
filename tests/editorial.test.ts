@@ -17,10 +17,10 @@ describe("editorial library", () => {
     expect(filterStories("column", "gordon")).toHaveLength(0);
     expect(filterStories("all", "없는 검색어 xyz")).toEqual([]);
   });
-  it("uses only owned CDN images with dimensions", () => {
+  it("uses local bundled image paths with dimensions", () => {
     for (const story of stories)
       for (const b of story.blocks.filter((b) => b.type === "image")) {
-        expect(b.src).toMatch(/^https:\/\/file\.whiskynavi\.com\//);
+        expect(b.src).toMatch(/^\/editorial\//);
         expect(b.width).toBeGreaterThan(0);
         expect(b.height).toBeGreaterThan(0);
       }

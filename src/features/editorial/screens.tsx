@@ -10,7 +10,7 @@ import {
 } from "react";
 import {
   FlatList,
-  Linking,
+  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -38,6 +38,7 @@ import {
 } from "./content";
 import { StoryMarkup } from "./markup";
 import { storage } from "@/lib/storage";
+import { editorialImages } from "./images";
 import { createURL } from "expo-linking";
 const StoryCard = memo(function StoryCard({ story }: { story: Story }) {
   return (
@@ -51,7 +52,7 @@ const StoryCard = memo(function StoryCard({ story }: { story: Story }) {
       >
         {story.cover ? (
           <Image
-            source={story.cover}
+            source={editorialImages[story.cover]}
             contentFit="cover"
             cachePolicy="memory-disk"
             recyclingKey={story.id}
@@ -167,18 +168,51 @@ export function StoriesScreen() {
 }
 function ImageBlock({ block }: { block: Block }) {
   const [failed, setFailed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   return (
     <View style={css.figure}>
+      <Modal
+        visible={expanded}
+        onRequestClose={() => setExpanded(false)}
+        animationType="none"
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.background,
+            paddingTop: 60,
+            paddingBottom: 40,
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="이미지 닫기"
+            onPress={() => setExpanded(false)}
+            style={{ padding: 20 }}
+          >
+            <Text style={css.accent}>닫기</Text>
+          </Pressable>
+          <ScrollView
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            contentContainerStyle={{ flexGrow: 1 }}
+          >
+            <Image
+              source={editorialImages[block.src!]}
+              accessibilityLabel={block.alt}
+              contentFit="contain"
+              style={{ flex: 1, minHeight: 400 }}
+            />
+          </ScrollView>
+        </View>
+      </Modal>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${block.alt}, 크게 보기`}
-        onPress={() => {
-          if (block.src?.startsWith("https://"))
-            void Linking.openURL(block.src).catch(() => setFailed(true));
-        }}
+        onPress={() => setExpanded(true)}
       >
         <Image
-          source={block.src}
+          source={editorialImages[block.src!]}
           contentFit="contain"
           cachePolicy="memory-disk"
           accessibilityLabel={block.alt}
