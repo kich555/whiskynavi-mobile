@@ -13,6 +13,7 @@ import {
 } from "react";
 import { AppState } from "react-native";
 import { session } from "./session";
+import { synchronizeSessionQueries } from "./session-query-cache";
 
 const ReadyContext = createContext(false);
 function SessionLifecycle({ children }: { children: ReactNode }) {
@@ -27,8 +28,7 @@ function SessionLifecycle({ children }: { children: ReactNode }) {
         if (active) setReady(true);
       });
     const unsubscribe = session.subscribe((change) => {
-      // Rotating credentials must not detach observers from an in-flight query.
-      if (change === "identity") client.clear();
+      void synchronizeSessionQueries(client, change).catch(() => undefined);
     });
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") void client.invalidateQueries();

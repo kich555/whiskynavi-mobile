@@ -131,3 +131,11 @@ API36의 System UI/Quickstep ANR가 RAM 조정 뒤에도 재발했다. 기본 CI
 세 그룹의 `unstable_settings.initialRouteName`은 `anchor`로 교체했다. 비 Stack navigator의 anchor 계약에 맞춰 `backBehavior`를 `initialRoute`로 설정했다. 기본 브랜드·예약·공지, 재방문 상태 보존은 유지하며 그룹 내부에서 시스템 뒤로가기는 기본 탭을 먼저 거친다.
 
 검증: 관련 브라우저 회귀 7/7(기본 진입·스토리 4개 크기·게시판 전환·아카이브 시각 기준), 전체 단위 166/166, 타입·린트·변경 파일 포맷·iOS/Android/web 배포 번들 및 fixture 제외 검사 통과. 실제 기기 실행은 미검증이다.
+
+## 로그인 복원 후 홈·공지 무한 pending — 2026-10-25
+
+연결된 Expo Go iPhone에서 홈 배너·제품·영상, 브랜드, 전체 공지 observer가 캐시에 없는 query를 참조한 채 pending/fetching으로 남아 있음을 읽기 전용 디버거로 확인했다. 같은 기기의 공개 API 두 건은 약 40~100ms에 완료됐다. 저장된 세션 복원 알림을 identity로 처리하면서 `client.clear()`가 활성 query까지 제거하는 경로를 QueryObserver로 재현했다.
+
+복원은 별도 restore 알림으로 구분해 캐시를 보존한다. 로그인·로그아웃 시에는 비활성 계정 캐시와 mutation 기록을 제거하고 활성 query는 resetQueries로 초기화·재조회해 구독자를 유지한다. 토큰 갱신도 기존처럼 활성 요청을 보존한다. 저장된 로그인 복원과 실제 QueryObserver를 연결하는 단위 회귀를 추가했다. E2E의 빈 키체인 분기는 이 경로를 검증하지 않으므로 이 회귀를 별도 유지한다.
+
+검증: 단위 170/170, 관련 브라우저 시나리오 16/16(홈·공지·검색·기본 탭·스토리·로그인/로그아웃·토큰 갱신), 타입·린트·변경 파일 포맷·iOS/Android/web 배포 번들과 fixture 제외 검사 통과. 이미 분리된 런타임 observer는 앱 전체 reload로 새로 구성해야 한다.

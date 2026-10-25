@@ -85,3 +85,52 @@ it("distinguishes token rotation from account changes for cache subscribers", as
   expect(changed.mock.calls).toEqual([["identity"], ["refresh"], ["identity"]]);
   unsubscribe();
 });
+
+it("restores saved login without detaching mounted public requests", async () => {
+  const { QueryClient, QueryObserver } = await import("@tanstack/react-query");
+  const { synchronizeSessionQueries } =
+    await import("../src/lib/session-query-cache");
+  const { session } = await import("../src/lib/session");
+  let restoreStored: (value: string) => void = () => {};
+  mock.get.mockReturnValue(
+    new Promise<string>((resolve) => {
+      restoreStored = resolve;
+    }),
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  let respond: (value: string) => void = () => {};
+  const observer = new QueryObserver(client, {
+    queryKey: ["home", "banners"],
+    queryFn: () =>
+      new Promise<string>((resolve) => {
+        respond = resolve;
+      }),
+  });
+  const unsubscribeObserver = observer.subscribe(() => {});
+  const changes: string[] = [];
+  const unsubscribeSession = session.subscribe((change) => {
+    changes.push(change);
+    void synchronizeSessionQueries(client, change);
+  });
+  try {
+    const restoring = session.restore();
+    restoreStored(
+      JSON.stringify({ accessToken: "saved", refreshToken: "saved-refresh" }),
+    );
+    await restoring;
+    respond("banner response");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(changes).toEqual(["restore"]);
+    expect(client.getQueryCache().getAll()).toContain(
+      observer.getCurrentQuery(),
+    );
+    expect(observer.getCurrentResult().data).toBe("banner response");
+    expect(observer.getCurrentResult().status).toBe("success");
+  } finally {
+    unsubscribeSession();
+    unsubscribeObserver();
+    client.clear();
+  }
+});

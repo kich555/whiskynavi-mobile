@@ -4,7 +4,7 @@ export type Tokens = { accessToken: string; refreshToken: string };
 let tokens: Tokens | null = null;
 let generation = 0;
 let writes: Promise<void> = Promise.resolve();
-type SessionChange = "identity" | "refresh";
+export type SessionChange = "identity" | "refresh" | "restore";
 const listeners = new Set<(change: SessionChange) => void>();
 export const session = {
   get: () => tokens,
@@ -35,7 +35,7 @@ export const session = {
     } catch {
       await storage.remove("wn.session");
     }
-    listeners.forEach((listener) => listener("identity"));
+    listeners.forEach((listener) => listener("restore"));
   },
   async set(value: Tokens | null, change: SessionChange = "identity") {
     generation += 1;
