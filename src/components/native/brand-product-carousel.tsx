@@ -2,7 +2,7 @@ import type { BottleResponse } from "@/apis/generated/api";
 import { brandCardPosition } from "@/lib/brand-carousel";
 import { Link } from "expo-router";
 import { Image } from "expo-image";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -50,7 +50,6 @@ function Carousel({
   const [measuredWidth, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState<string>();
-  const until = useRef(0);
   const viewportWidth = measuredWidth || windowWidth;
   const baseWidth = Math.min(240, viewportWidth * 0.62);
   const stageWidth = Math.max(1, viewportWidth - 72);
@@ -58,15 +57,18 @@ function Carousel({
   const stageHeight = (viewportWidth >= 375 ? 440 : 360) + extraHeight;
   const choose = useCallback(
     (next: number) => {
-      if (Date.now() < until.current) return;
-      until.current = Date.now() + 400;
       setIndex(((next % bottles.length) + bottles.length) % bottles.length);
     },
     [bottles.length],
   );
   const step = useCallback(
-    (delta: number) => choose(index + delta),
-    [choose, index],
+    (delta: number) =>
+      setIndex(
+        (current) =>
+          (((current + delta) % bottles.length) + bottles.length) %
+          bottles.length,
+      ),
+    [bottles.length],
   );
   const pan = usePanGesture({
     enabled: bottles.length > 1,
@@ -95,24 +97,23 @@ function Carousel({
             testID="brand-carousel-stage"
             style={{ width: stageWidth, height: stageHeight }}
           >
-            {bottles.map((bottle, item) =>
-              brandCardPosition(item, index, bottles.length, baseWidth)
-                .visible ? (
-                <CarouselCard
-                  key={bottle.id ?? item}
-                  bottle={bottle}
-                  item={item}
-                  current={index}
-                  count={bottles.length}
-                  baseWidth={baseWidth}
-                  stageWidth={stageWidth}
-                  stageHeight={stageHeight}
-                  extraHeight={extraHeight}
-                  onSelect={() => choose(item)}
-                  onExpand={setExpanded}
-                />
-              ) : null,
-            )}
+            {/* The query is bounded to 12 products. Keep image views mounted
+                across selection and the loop boundary instead of reloading them. */}
+            {bottles.map((bottle, item) => (
+              <CarouselCard
+                key={bottle.id ?? item}
+                bottle={bottle}
+                item={item}
+                current={index}
+                count={bottles.length}
+                baseWidth={baseWidth}
+                stageWidth={stageWidth}
+                stageHeight={stageHeight}
+                extraHeight={extraHeight}
+                onSelect={() => choose(item)}
+                onExpand={setExpanded}
+              />
+            ))}
           </View>
         </GestureDetector>
       </GestureHandlerRootView>
@@ -191,8 +192,8 @@ function CarouselCard({
   const center = item === current;
   const animatedStyle = useAnimatedStyle(() => {
     const config = {
-      duration: 700,
-      easing: Easing.inOut(Easing.ease),
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
       reduceMotion: ReduceMotion.System,
     };
     const height = position.height + extraHeight;
@@ -214,6 +215,17 @@ function CarouselCard({
     stageHeight,
     extraHeight,
   ]);
+  const dimStyle = useAnimatedStyle(
+    () => ({
+      backgroundColor: "black",
+      opacity: withTiming(1 - position.brightness, {
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        reduceMotion: ReduceMotion.System,
+      }),
+    }),
+    [position.brightness],
+  );
   const picture = (
     <Image
       source={
@@ -256,47 +268,44 @@ function CarouselCard({
         animatedStyle,
       ]}
     >
-      {center ? (
-        <>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${bottle.name ?? "제품"} 이미지 확대`}
-            disabled={!bottle.imgUrl}
-            onPress={() => bottle.imgUrl && onExpand(bottle.imgUrl)}
-            style={s.picture}
-          >
-            {picture}
-          </Pressable>
-          <Link href={`/archive/${bottle.id}`} asChild>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={`${bottle.name ?? "제품"} 상세 보기`}
-              style={{ minHeight: 44 }}
-            >
-              {copy}
-            </Pressable>
-          </Link>
-        </>
-      ) : (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${bottle.name ?? "제품"} 이미지 확대`}
+        accessible={center}
+        aria-hidden={!center}
+        disabled={!center || !bottle.imgUrl}
+        onPress={() => bottle.imgUrl && onExpand(bottle.imgUrl)}
+        style={s.picture}
+      >
+        {picture}
+      </Pressable>
+      <Link href={`/archive/${bottle.id}`} asChild>
         <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${bottle.name ?? "제품"} 가운데로 보기`}
-          onPress={onSelect}
-          style={{ flex: 1 }}
+          accessibilityRole="link"
+          accessibilityLabel={`${bottle.name ?? "제품"} 상세 보기`}
+          accessible={center}
+          aria-hidden={!center}
+          disabled={!center}
+          style={{ minHeight: 44 }}
         >
-          <View style={s.picture}>{picture}</View>
           {copy}
         </Pressable>
-      )}
-      {!center ? (
-        <View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: `rgba(0,0,0,${1 - position.brightness})` },
-          ]}
-        />
-      ) : null}
+      </Link>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${bottle.name ?? "제품"} 가운데로 보기`}
+        accessible={!center}
+        accessibilityElementsHidden={center}
+        importantForAccessibility={center ? "no-hide-descendants" : "auto"}
+        aria-hidden={center}
+        pointerEvents={center ? "none" : "auto"}
+        onPress={onSelect}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, dimStyle]}
+      />
     </Animated.View>
   );
 }

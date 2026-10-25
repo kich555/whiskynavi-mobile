@@ -72,6 +72,11 @@ for (const width of [320, 393, 430]) {
       path: `artifacts/brand-carousel-after-${width}.png`,
       scale: "css",
     });
+    const departingImage = await center.locator("img").elementHandle();
+    const arrivingImage = await carousel
+      .getByTestId("brand-carousel-card-1")
+      .locator("img")
+      .elementHandle();
     await carousel
       .getByRole("button", { name: "캐러셀 제품 2 가운데로 보기", exact: true })
       .click({
@@ -86,6 +91,12 @@ for (const width of [320, 393, 430]) {
           y: right.height / 2,
         },
       });
+    expect(await departingImage!.evaluate((image) => image.isConnected)).toBe(
+      true,
+    );
+    expect(await arrivingImage!.evaluate((image) => image.isConnected)).toBe(
+      true,
+    );
     await settle(2);
     const cdp = await page.context().newCDPSession(page);
     const swipe = async (next: boolean) => {
@@ -136,5 +147,9 @@ for (const width of [320, 393, 430]) {
     await expect(page).toHaveURL(/\/archive\/1$/);
     await page.goBack();
     await expect(selected(1)).toHaveAttribute("aria-selected", "true");
+    // A second input during the first animation must not be dropped.
+    await selected(2).click();
+    await selected(3).click();
+    await settle(3);
   });
 }
