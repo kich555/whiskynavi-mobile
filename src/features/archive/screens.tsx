@@ -1,5 +1,6 @@
 import { ArchiveImageCarousel } from "@/components/native/archive-image-carousel";
 import { ImageLightbox } from "@/components/native/image-lightbox";
+import { HomeVideo } from "@/components/native/home-video";
 import { HomeBanner } from "@/components/native/home-banner";
 import type { ComponentRef } from "react";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
@@ -15,7 +16,6 @@ import {
   bottleFrame,
 } from "@/components/native/brand";
 import {
-  Linking,
   TextInput,
   View,
   Text,
@@ -161,18 +161,8 @@ export function HomeScreen() {
           <Loading variant="inline" label="영상 정보 불러오는 중" />
         </View>
       ) : null}
-      {youtubeQuery.data?.data.value &&
-      /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(
-        youtubeQuery.data.data.value,
-      ) ? (
-        <View style={{ padding: 16, gap: 16 }}>
-          <Heading>YOUTUBE</Heading>
-          <Action
-            secondary
-            title="위스키내비 영상 보기"
-            onPress={() => void Linking.openURL(youtubeQuery.data!.data.value!)}
-          />
-        </View>
+      {youtubeQuery.data?.data.value ? (
+        <HomeVideo url={youtubeQuery.data.data.value} />
       ) : null}
       {youtubeQuery.isError ? (
         <View style={{ padding: 16, gap: 12 }}>

@@ -141,3 +141,9 @@ API36의 System UI/Quickstep ANR가 RAM 조정 뒤에도 재발했다. 기본 CI
 검증: 단위 170/170, 관련 브라우저 시나리오 16/16(홈·공지·검색·기본 탭·스토리·로그인/로그아웃·토큰 갱신), 타입·린트·변경 파일 포맷·iOS/Android/web 배포 번들과 fixture 제외 검사 통과. 이미 분리된 런타임 observer는 앱 전체 reload로 새로 구성해야 한다.
 
 수정 반영 후 Metro의 iPhone 디버깅 대상이 더 이상 연결되어 있지 않아 기기 전체 reload 요청과 수정 후 live query 재확인은 수행하지 못했다. 실제 기기의 수정 후 성공으로 기록하지 않는다.
+
+## 홈 대표 영상 — 2026-10-25
+
+원래의 외부 링크 버튼을 썸네일·인라인 플레이어로 바꿨다. API 키 youtube_embed_url은 유지하며 watch/embed/shorts/live/단축 URL에서 검증한 ID만 사용한다. 네이티브는 설치된 react-native-webview, 웹은 iframe을 사용한다. YouTube 요구사항에 따라 네이티브 WebView에는 설치 앱 ID의 HTTPS Referer를 전달하고 웹은 strict-origin-when-cross-origin을 사용한다. [YouTube 플레이어](https://developers.google.com/youtube/player_parameters), [임베드 식별](https://developers.google.com/youtube/terms/required-minimum-functionality#api-client-identity-and-credentials).
+
+검증: 320/390/430px에서 썸네일→플레이어→닫기·탭 이탈, 잘못된/빈 URL, 홈 배너·부분 오류·폰트 지연을 포함한 브라우저 11/11. 외부 영상 요청은 합성 썸네일/iframe 응답으로 처리하므로 실제 YouTube 재생 성공을 뜻하지 않는다. 단위 187/187, 타입·린트·변경 파일 포맷·iOS/Android/web 배포 번들과 fixture 제외 검사 통과. 실제 iPhone/Android 영상 재생·전체 화면·백그라운드 복귀는 미검증이다. 합성 화면 캡처는 artifacts/home-video-thumbnail.png와 home-video-playing.png다.
