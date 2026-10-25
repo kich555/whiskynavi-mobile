@@ -1,6 +1,7 @@
 import { ArchiveImageCarousel } from "@/components/native/archive-image-carousel";
 import { ImageLightbox } from "@/components/native/image-lightbox";
 import { HomeVideo } from "@/components/native/home-video";
+import { BrandProductCarousel } from "@/components/native/brand-product-carousel";
 import { HomeBanner } from "@/components/native/home-banner";
 import type { ComponentRef } from "react";
 import { useInfiniteFeed } from "@/lib/infinite-feed";
@@ -807,20 +808,21 @@ function BrandSection({
           />
         </View>
       ) : null}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 48, gap: 16 }}
-      >
-        {products.data?.data.content?.map((bottle) => (
-          <View
-            key={bottle.id}
-            style={{ width: 240, backgroundColor: colors.surface }}
-          >
-            <BottleCard bottle={bottle} />
-          </View>
-        ))}
-      </ScrollView>
+      <Message error={products.error} />
+      {products.isError ? (
+        <View style={{ paddingHorizontal: 24 }}>
+          <Action
+            secondary
+            title="브랜드 상품 다시 불러오기"
+            onPress={() => void products.refetch()}
+          />
+        </View>
+      ) : null}
+      <BrandProductCarousel
+        key={series?.name ?? ""}
+        bottles={products.data?.data.content ?? []}
+        label={visual.name}
+      />
       {data?.brand ? (
         <View style={{ alignItems: "center" }}>
           <NavLink
