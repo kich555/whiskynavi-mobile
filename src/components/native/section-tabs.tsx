@@ -72,6 +72,30 @@ export function SectionTab({
   );
 }
 
+// TabList injects View layout styles. Keep them on this outer surface so
+// native ScrollView receives child layout only through contentContainerStyle.
+function SectionTabStrip({
+  children,
+  style,
+  ...props
+}: ComponentProps<typeof View>) {
+  return (
+    <SafeAreaView {...props} edges={["left", "right"]} style={style}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 8,
+          justifyContent: "flex-start",
+          alignItems: "stretch",
+        }}
+      >
+        {children}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
 export function SectionTabs({
   title,
   items,
@@ -85,7 +109,7 @@ export function SectionTabs({
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       {Platform.OS !== "web" ? <BrandHeader /> : null}
-      <Tabs options={{ backBehavior: "none" }} style={{ flex: 1 }}>
+      <Tabs options={{ backBehavior: "initialRoute" }} style={{ flex: 1 }}>
         <TabList
           asChild
           style={{
@@ -95,16 +119,9 @@ export function SectionTabs({
             borderColor: colors.line,
           }}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
+          <SectionTabStrip
             accessibilityRole="tablist"
             accessibilityLabel={`${title} 메뉴`}
-            contentContainerStyle={{
-              paddingHorizontal: 8,
-              justifyContent: "flex-start",
-              alignItems: "stretch",
-            }}
           >
             {items.map(({ name, label, href }) => (
               <TabTrigger
@@ -117,7 +134,7 @@ export function SectionTabs({
                 <SectionTab label={label} />
               </TabTrigger>
             ))}
-          </ScrollView>
+          </SectionTabStrip>
         </TabList>
         <View style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           <TabSlot detachInactiveScreens style={{ flex: 1, minHeight: 0 }} />

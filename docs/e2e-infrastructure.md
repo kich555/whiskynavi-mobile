@@ -123,3 +123,11 @@ API36의 System UI/Quickstep ANR가 RAM 조정 뒤에도 재발했다. 기본 CI
 - 320/390/430px와 가로 844px에서 4개 탭 노출·최소 터치 크기, 상세 진입/뒤로가기, 검색어 보존, 키보드 Enter 선택, 하단 영역 재방문을 검사했다. 차콜·Navi Sans를 유지하며 왼쪽 정렬·일관된 여백·3px 선택 표시로 정돈했다.
 - 전체 브라우저 회귀 275/275, 재시도 0. 라우트 준비 검사 66/66. 단위·계약 165/165. 린트·타입검사·변경 파일 포맷 검사 통과.
 - iOS/Android/web 배포 번들 생성과 fixture 정보 제외 검사 통과. Maestro 12개 YAML 형식 검사 통과. simctl/adb가 없어 이번 작업의 실제 네이티브 실행은 하지 않았다. 브라우저 캡처는 실기기 검증을 대신하지 않는다.
+
+## 네이티브 상단 탭 오류 수정 — 2026-10-25
+
+`TabList asChild`의 기본 `justifyContent`가 ScrollView의 viewport style로 합쳐져 네이티브 invariant가 발생했다. 외부 SafeAreaView가 해당 스타일을 받고 내부 ScrollView는 contentContainerStyle로만 자식 정렬을 설정하도록 분리했다. 실제 설치된 Expo TabList를 실행하는 단위 하네스에 네이티브 ScrollView 제약을 적용해 수정 전 동일 메시지 실패·수정 후 성공을 확인했다. 네이티브 앱 실행을 대체하는 테스트는 아니다.
+
+세 그룹의 `unstable_settings.initialRouteName`은 `anchor`로 교체했다. 비 Stack navigator의 anchor 계약에 맞춰 `backBehavior`를 `initialRoute`로 설정했다. 기본 브랜드·예약·공지, 재방문 상태 보존은 유지하며 그룹 내부에서 시스템 뒤로가기는 기본 탭을 먼저 거친다.
+
+검증: 관련 브라우저 회귀 7/7(기본 진입·스토리 4개 크기·게시판 전환·아카이브 시각 기준), 전체 단위 166/166, 타입·린트·변경 파일 포맷·iOS/Android/web 배포 번들 및 fixture 제외 검사 통과. 실제 기기 실행은 미검증이다.

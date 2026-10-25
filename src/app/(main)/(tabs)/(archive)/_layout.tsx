@@ -1,5 +1,5 @@
 import { SectionTabs } from "@/components/native/section-tabs";
-export const unstable_settings = { initialRouteName: "brand" };
+export const unstable_settings = { anchor: "brand" };
 export default function Layout() {
   return (
     <SectionTabs
