@@ -197,11 +197,16 @@ export function BoardScreen({ board }: { board: BoardTab }) {
           style={boardStyles.listRow}
         >
           <View
-            style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}
+            style={
+              board === "news"
+                ? boardStyles.newsHeading
+                : { flexDirection: "row", gap: 8, alignItems: "flex-start" }
+            }
           >
             <View
               style={[
                 boardStyles.categoryBadge,
+                board === "news" ? { maxWidth: "100%" } : null,
                 resource === "announcements"
                   ? { backgroundColor: "#2563eb20", borderColor: "#60a5fa44" }
                   : null,
@@ -220,7 +225,12 @@ export function BoardScreen({ board }: { board: BoardTab }) {
                     : "이야기"}
               </Text>
             </View>
-            <Text style={[boardStyles.rowTitle, { flex: 1 }]}>
+            <Text
+              style={[
+                boardStyles.rowTitle,
+                board === "news" ? { alignSelf: "stretch" } : { flex: 1 },
+              ]}
+            >
               {item.title}
             </Text>
           </View>
@@ -269,6 +279,10 @@ const boardStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     minHeight: 76,
+  },
+  newsHeading: {
+    gap: 6,
+    alignItems: "flex-start",
   },
   pinned: {
     flexDirection: "row",
