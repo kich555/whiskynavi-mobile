@@ -686,9 +686,14 @@ export function BrandScreen() {
               source={item.icon}
               contentFit="contain"
               contentPosition="center"
-              // Keep image measurement out of the aspect-ratio card's flow.
-              // Percentage image heights can feed back into native row sizing.
-              style={[StyleSheet.absoluteFill, { margin: 24 }]}
+              // Preserve the original 68% × 65% logo area outside layout flow.
+              style={{
+                position: "absolute",
+                left: "16%",
+                right: "16%",
+                top: "17.5%",
+                bottom: "17.5%",
+              }}
             />
           </Pressable>
         ))}
