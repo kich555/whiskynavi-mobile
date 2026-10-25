@@ -147,3 +147,9 @@ API36의 System UI/Quickstep ANR가 RAM 조정 뒤에도 재발했다. 기본 CI
 원래의 외부 링크 버튼을 썸네일·인라인 플레이어로 바꿨다. API 키 youtube_embed_url은 유지하며 watch/embed/shorts/live/단축 URL에서 검증한 ID만 사용한다. 네이티브는 설치된 react-native-webview, 웹은 iframe을 사용한다. YouTube 요구사항에 따라 네이티브 WebView에는 설치 앱 ID의 HTTPS Referer를 전달하고 웹은 strict-origin-when-cross-origin을 사용한다. [YouTube 플레이어](https://developers.google.com/youtube/player_parameters), [임베드 식별](https://developers.google.com/youtube/terms/required-minimum-functionality#api-client-identity-and-credentials).
 
 검증: 320/390/430px에서 썸네일→플레이어→닫기·탭 이탈, 잘못된/빈 URL, 홈 배너·부분 오류·폰트 지연을 포함한 브라우저 11/11. 외부 영상 요청은 합성 썸네일/iframe 응답으로 처리하므로 실제 YouTube 재생 성공을 뜻하지 않는다. 단위 187/187, 타입·린트·변경 파일 포맷·iOS/Android/web 배포 번들과 fixture 제외 검사 통과. 실제 iPhone/Android 영상 재생·전체 화면·백그라운드 복귀는 미검증이다. 합성 화면 캡처는 artifacts/home-video-thumbnail.png와 home-video-playing.png다.
+
+## 브랜드 로고 중앙 정렬 — 2026-10-25
+
+iPhone 15에서 카드 높이가 줄고 로고가 아래로 치우쳐 보인다는 첨부 화면을 기준으로 수정했다. 원본 PNG의 알파 경계는 대체로 균형이 잡혀 있었다. 이미지의 percentage 높이가 정사각형 카드의 네이티브 측정에 영향을 줄 수 있는 구조를 제거하고 absoluteFill+24px margin으로 카드 크기와 이미지 배치를 분리했다. contain·center로 전체 로고를 중앙 표시한다.
+
+기존 기본 메뉴 이동·브랜드 시리즈 로딩 회귀 2/2, 타입·린트 통과. 새 웹 캡처에서 중앙 배치를 확인했다. iPhone 디버거 연결이 없어 이번 증상을 실제 기기에서 재현하거나 수정 후 기기 배치를 측정하지 못했다.

@@ -685,7 +685,10 @@ export function BrandScreen() {
             <Image
               source={item.icon}
               contentFit="contain"
-              style={{ width: "68%", height: "65%" }}
+              contentPosition="center"
+              // Keep image measurement out of the aspect-ratio card's flow.
+              // Percentage image heights can feed back into native row sizing.
+              style={[StyleSheet.absoluteFill, { margin: 24 }]}
             />
           </Pressable>
         ))}
