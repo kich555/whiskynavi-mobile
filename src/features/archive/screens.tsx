@@ -642,6 +642,10 @@ export function BrandScreen() {
     queryKey: ["brands"],
     queryFn: () => getApiBottlesBrandSeries(),
   });
+  const { width: windowWidth } = useWindowDimensions();
+  const [gridWidth, setGridWidth] = useState<number>();
+  // Screen has 16px side padding; the grid has 8px padding and a 16px gap.
+  const cardSize = Math.max(1, ((gridWidth ?? windowWidth - 32) - 32) / 2);
   const ref = useRef<ComponentRef<typeof ScrollView>>(null);
   const positions = useRef<Record<string, number>>({});
   return (
@@ -653,6 +657,10 @@ export function BrandScreen() {
     >
       <PageHero title="브랜드" subtitle="각 브랜드별 시리즈를 만나보세요" />
       <View
+        onLayout={({ nativeEvent }) => {
+          if (nativeEvent.layout.width > 0)
+            setGridWidth(nativeEvent.layout.width);
+        }}
         style={{
           flexDirection: "row",
           flexWrap: "wrap",
@@ -665,6 +673,7 @@ export function BrandScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={item.name}
+            testID={`brand-shortcut-${item.match}`}
             key={item.name}
             onPress={() =>
               ref.current?.scrollTo({
@@ -673,8 +682,9 @@ export function BrandScreen() {
               })
             }
             style={{
-              width: "47%",
-              aspectRatio: 1,
+              width: cardSize,
+              height: cardSize,
+              flexShrink: 0,
               borderWidth: 1,
               borderColor: colors.line,
               backgroundColor: colors.surface,
@@ -686,13 +696,10 @@ export function BrandScreen() {
               source={item.icon}
               contentFit="contain"
               contentPosition="center"
-              // Preserve the original 68% × 65% logo area outside layout flow.
               style={{
-                position: "absolute",
-                left: "16%",
-                right: "16%",
-                top: "17.5%",
-                bottom: "17.5%",
+                width: cardSize * 0.68,
+                height: cardSize * 0.65,
+                flexShrink: 0,
               }}
             />
           </Pressable>
