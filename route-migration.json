@@ -274,7 +274,7 @@
   },
   {
     "route": "/stories",
-    "target": "src/app/(main)/stories/index.tsx",
+    "target": "src/app/(main)/(tabs)/(community)/stories.tsx",
     "screen": "StoriesScreen"
   },
   {

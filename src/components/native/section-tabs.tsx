@@ -1,6 +1,6 @@
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { useState, type ComponentProps } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandHeader } from "./brand";
 import { colors } from "./ui";
@@ -32,11 +32,13 @@ export function SectionTab({
       accessibilityState={{ selected: isFocused }}
       aria-selected={isFocused}
       style={({ pressed }) => ({
-        minHeight: 48,
-        paddingHorizontal: 18,
+        minHeight: 52,
+        minWidth: 64,
+        paddingHorizontal: 12,
+        flexShrink: 0,
         alignItems: "center",
         justifyContent: "center",
-        opacity: pressed ? 0.65 : 1,
+        backgroundColor: pressed ? colors.surface : "transparent",
         borderRadius: 4,
         outlineWidth: focused ? 2 : 0,
         outlineColor: colors.text,
@@ -45,7 +47,7 @@ export function SectionTab({
     >
       <Text
         style={{
-          fontFamily: isFocused ? "NaviSansBold" : "NaviSansMedium",
+          fontFamily: "NaviSansBold",
           fontSize: 16,
           color: isFocused ? colors.text : colors.muted,
         }}
@@ -58,11 +60,11 @@ export function SectionTab({
           style={{
             position: "absolute",
             bottom: 0,
-            left: 18,
-            right: 18,
-            height: 2,
+            left: 12,
+            right: 12,
+            height: 3,
             backgroundColor: colors.text,
-            borderRadius: 1,
+            borderRadius: 2,
           }}
         />
       ) : null}
@@ -85,27 +87,37 @@ export function SectionTabs({
       {Platform.OS !== "web" ? <BrandHeader /> : null}
       <Tabs options={{ backBehavior: "none" }} style={{ flex: 1 }}>
         <TabList
-          accessibilityRole="tablist"
-          accessibilityLabel={`${title} 메뉴`}
+          asChild
           style={{
-            flexDirection: "row",
-            paddingHorizontal: 12,
+            flexGrow: 0,
+            flexShrink: 0,
             borderBottomWidth: 1,
             borderColor: colors.line,
-            flexShrink: 0,
           }}
         >
-          {items.map(({ name, label, href }) => (
-            <TabTrigger
-              key={name}
-              name={name}
-              href={href as never}
-              resetOnFocus={false}
-              asChild
-            >
-              <SectionTab label={label} />
-            </TabTrigger>
-          ))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            accessibilityRole="tablist"
+            accessibilityLabel={`${title} 메뉴`}
+            contentContainerStyle={{
+              paddingHorizontal: 8,
+              justifyContent: "flex-start",
+              alignItems: "stretch",
+            }}
+          >
+            {items.map(({ name, label, href }) => (
+              <TabTrigger
+                key={name}
+                name={name}
+                href={href as never}
+                resetOnFocus={false}
+                asChild
+              >
+                <SectionTab label={label} />
+              </TabTrigger>
+            ))}
+          </ScrollView>
         </TabList>
         <View style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           <TabSlot detachInactiveScreens style={{ flex: 1, minHeight: 0 }} />

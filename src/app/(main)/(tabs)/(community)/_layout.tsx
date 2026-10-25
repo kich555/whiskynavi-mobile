@@ -12,6 +12,7 @@ export default function Layout() {
           href: "/board/community",
         },
         { name: "board/news", label: "소식", href: "/board/news" },
+        { name: "stories", label: "스토리", href: "/stories" },
       ]}
     />
   );

@@ -449,7 +449,7 @@
   },
   {
     "route": "/stories",
-    "target": "src/app/(main)/stories/index.tsx",
+    "target": "src/app/(main)/(tabs)/(community)/stories.tsx",
     "path": "/stories",
     "expect": "한 잔 너머의 이야기",
     "auth": false

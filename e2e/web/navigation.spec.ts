@@ -231,3 +231,64 @@ test("global notices paginate without losing earlier rows", async ({
     .evaluate((el) => el.scrollTo({ top: 0 }));
   await expect(page.getByTestId("notice-row-100")).toBeVisible();
 });
+
+for (const width of [320, 390, 430, 844]) {
+  test(`community story tab retains search and reader history at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: width === 844 ? 390 : 844 });
+    await page.goto("/notices");
+    const menu = page.getByRole("tablist", {
+      name: "커뮤니티 메뉴",
+      exact: true,
+    });
+    await expect(menu.getByRole("tab")).toHaveCount(4);
+    const story = menu.getByRole("tab", { name: "스토리", exact: true });
+    await story.click();
+    await expect(page).toHaveURL(/\/stories$/);
+    await expect(story).toHaveAttribute("aria-selected", "true");
+    const bottom = page.getByRole("tablist", {
+      name: "하단 메뉴",
+      exact: true,
+    });
+    await expect(
+      bottom.getByRole("tab", { name: "커뮤니티", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+    for (const tab of await menu.getByRole("tab").all()) {
+      const box = await tab.boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(48);
+      expect(box!.width).toBeGreaterThanOrEqual(48);
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    }
+    const search = page.getByRole("textbox", {
+      name: "제목과 소개로 검색",
+      exact: true,
+    });
+    await search.fill("화요");
+    await expect(
+      page.getByText("화요는 위스키일까?", { exact: true }),
+    ).toBeVisible();
+    await search.blur();
+    await page.screenshot({
+      path: `artifacts/community-story-${width}.png`,
+      scale: "css",
+    });
+    await page.getByText("화요는 위스키일까?", { exact: true }).click();
+    await expect(page).toHaveURL(/\/stories\/hwayo-whisky$/);
+    await expect(
+      page.getByRole("heading", { name: "화요는 위스키일까?", exact: true }),
+    ).toBeVisible();
+    await page.goBack();
+    await expect(search).toHaveValue("화요");
+    await menu.getByRole("tab", { name: "공지", exact: true }).click();
+    await story.focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/stories$/);
+    await expect(search).toHaveValue("화요");
+    await bottom.getByRole("tab", { name: "홈", exact: true }).click();
+    await bottom.getByRole("tab", { name: "커뮤니티", exact: true }).click();
+    await expect(page).toHaveURL(/\/stories$/);
+    await expect(search).toHaveValue("화요");
+  });
+}

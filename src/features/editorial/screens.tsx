@@ -93,7 +93,6 @@ export function StoriesScreen() {
   );
   return (
     <>
-      <Stack.Screen options={{ title: "스토리", headerTitle: "스토리" }} />
       <FlatList
         data={data}
         keyExtractor={(s) => s.id}
