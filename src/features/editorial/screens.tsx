@@ -103,7 +103,7 @@ export function StoriesScreen() {
         ListHeaderComponent={
           <View>
             <Text accessibilityRole="header" style={css.title}>
-              한 잔 너머의 이야기
+              칼럼
             </Text>
             <Text style={css.description}>
               위스키를 만드는 사람과 장소, 그리고 한 잔에 담긴 생각들.
@@ -436,9 +436,9 @@ const css = StyleSheet.create({
     borderBottomColor: "transparent",
     minHeight: 48,
   },
-  selected: { borderBottomColor: "#ccff55" },
+  selected: { borderBottomColor: colors.accent },
   tabText: { fontFamily: "NaviSansMedium", fontSize: 15, color: colors.text },
-  accent: { color: "#ccff55" },
+  accent: { color: colors.accent },
   search: {
     flexDirection: "row",
     alignItems: "center",
@@ -492,7 +492,7 @@ const css = StyleSheet.create({
   empty: { paddingVertical: 48 },
   tool: { minHeight: 48, paddingVertical: 12, justifyContent: "center" },
   back: {
-    color: "#ccff55",
+    color: colors.accent,
     fontFamily: "NaviSansMedium",
     fontSize: 15,
     lineHeight: 24,

@@ -30,7 +30,6 @@ export const categories = [
   { id: "all", label: "전체" },
   { id: "column", label: "위스키 칼럼" },
   { id: "distillery", label: "증류소 이야기" },
-  { id: "bottler", label: "독립병입자 이야기" },
 ];
 export function filterStories(category: string, query: string) {
   const q = query.trim().toLocaleLowerCase();

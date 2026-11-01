@@ -120,7 +120,7 @@ const css = StyleSheet.create({
   },
   bold: { fontFamily: "NaviSansBold", fontWeight: "700", color: colors.text },
   italic: { fontStyle: "italic" },
-  link: { color: "#ccff55", textDecorationLine: "underline" },
+  link: { color: colors.accent, textDecorationLine: "underline" },
   row: { flexDirection: "row", gap: 12 },
   cell: { width: 180, padding: 12, borderWidth: 1, borderColor: colors.line },
   flex: { flex: 1 },

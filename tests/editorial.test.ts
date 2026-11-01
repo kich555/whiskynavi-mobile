@@ -5,15 +5,15 @@ import {
   findStory,
 } from "../src/features/editorial/content";
 describe("editorial library", () => {
-  it("keeps 37 unique stories and the stable sample route", () => {
-    expect(stories).toHaveLength(37);
-    expect(new Set(stories.map((s) => s.slug)).size).toBe(37);
+  it("keeps 23 unique stories and the stable sample route", () => {
+    expect(stories).toHaveLength(23);
+    expect(new Set(stories.map((s) => s.slug)).size).toBe(23);
     expect(findStory("hwayo-whisky")?.title).toBe("화요는 위스키일까?");
     expect(findStory("missing")).toBeUndefined();
   });
   it("combines category and case-insensitive trimmed search", () => {
-    expect(filterStories("distillery", "")).toHaveLength(14);
-    expect(filterStories("bottler", " gordon ")).toHaveLength(1);
+    expect(filterStories("distillery", "")).toHaveLength(11);
+    expect(filterStories("bottler", " gordon ")).toHaveLength(0);
     expect(filterStories("column", "gordon")).toHaveLength(0);
     expect(filterStories("all", "없는 검색어 xyz")).toEqual([]);
   });
